@@ -167,6 +167,7 @@ cc_library_static {
         "libbt-common-qti",
         //"libbtif_ext",
         "libc++fs",
+        "PlatformProperties",
     ],
     header_libs: [
         "libmedia_headers",
