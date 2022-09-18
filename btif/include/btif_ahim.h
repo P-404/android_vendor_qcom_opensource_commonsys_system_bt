@@ -194,13 +194,20 @@ void btif_ahim_end_session(uint8_t profile);
 
 tA2DP_CTRL_CMD btif_ahim_get_pending_command(uint8_t profile);
 
+tA2DP_CTRL_CMD btif_ahim_get_pending_command(uint8_t profile,
+                                                          uint8_t direction);
+
 void btif_ahim_reset_pending_command(uint8_t profile);
+
+void btif_ahim_reset_pending_command(uint8_t profile, uint8_t direction);
 
 void btif_ahim_update_pending_command(tA2DP_CTRL_CMD cmd, uint8_t profile);
 
 void btif_ahim_ack_stream_started(const tA2DP_CTRL_ACK& ack, uint8_t profile);
 
 void btif_ahim_ack_stream_suspended(const tA2DP_CTRL_ACK& ack, uint8_t profile);
+
+void btif_ahim_ack_stream_direction_suspended(const tA2DP_CTRL_ACK& ack, uint8_t profile, uint8_t direction);
 
 void btif_ahim_ack_stream_profile_suspended(const tA2DP_CTRL_ACK& ack,
                                            uint8_t profile,

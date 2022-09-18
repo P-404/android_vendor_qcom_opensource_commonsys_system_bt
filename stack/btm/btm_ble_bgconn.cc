@@ -523,7 +523,16 @@ bool BTM_WhiteListAdd(const RawAddress& address) {
     btm_ble_stop_auto_conn();
   }
   btm_add_dev_to_controller(true, address);
-  btm_ble_resume_bg_conn();
+  const bool connected =
+    BTM_IsAclConnectionUp(address, BT_TRANSPORT_LE);
+  BTM_TRACE_DEBUG("%s ACLUP is %d ", __func__, connected);
+  if (!connected) {
+    VLOG(1) << __func__ << ": initiating connection " << address;
+    btm_ble_resume_bg_conn();
+  } else {
+    BTM_TRACE_DEBUG(" %s Executing Whitelist operation ", __func__);
+    btm_execute_wl_dev_operation();
+  }
   return true;
 }
 

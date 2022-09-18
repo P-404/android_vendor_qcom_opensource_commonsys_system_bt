@@ -77,7 +77,8 @@
 #define BTSNOOP_MODE_SNOOPHEADERSFILTERED "snoopheadersfiltered"
 #define BTSNOOP_MODE_MEDIAPKTSFILTERED "mediapktsfiltered"
 #define BTSNOOP_MODE_PROFILESFILTERED "profilesfiltered"
-
+//adding adv prop
+#define BTSNOOP_LOG_MODE_PROPERTY_ADV "persist.vendor.service.bt.adv_snoop"
 #define BTSNOOP_PATH_PROPERTY "persist.bluetooth.btsnooppath"
 #if (OFF_TARGET_TEST_ENABLED == FALSE)
   #define DEFAULT_BTSNOOP_PATH "/data/misc/bluetooth/logs/btsnoop_hci.log"
@@ -380,7 +381,6 @@ static future_t* start_up() {
   time_t t = time(NULL);
   struct tm tm_cur;
   int len = 0;
-
   localtime_r (&t, &tm_cur);
   gmt_offset = tm_cur.tm_gmtoff;
 
@@ -405,8 +405,24 @@ static future_t* start_up() {
   len = osi_property_get(BTSNOOP_LOG_MODE_PROPERTY, property.data(),
                              default_mode.c_str());
   std::string btsnoop_mode(property.data(), len);
+  // get the adv prop
+  len = osi_property_get(BTSNOOP_LOG_MODE_PROPERTY_ADV, property.data(),
+                             default_mode.c_str());
+  std::string btsnoop_mode_adv(property.data(), len);
 
-  if (btsnoop_mode == BTSNOOP_MODE_FILTERED) {
+  if (btsnoop_mode_adv == BTSNOOP_MODE_MEDIAPKTSFILTERED) {
+    LOG(INFO) << __func__ << ": media pkts Filtered VndSnoop Logs enabled";
+    is_vndbtsnoop_enabled = true;
+    is_btsnoop_enabled = false;
+    is_btsnoop_filtered = false;
+    vendor_logging_level = HCI_SNOOP_LOG_LITE | DYNAMIC_LOGCAT_CAPTURE;
+  } else if (btsnoop_mode_adv == BTSNOOP_MODE_SNOOPHEADERSFILTERED) {
+    LOG(INFO) << __func__ << ": only headers filtered VndSnoop Logs enabled";
+    is_vndbtsnoop_enabled = true;
+    is_btsnoop_enabled = false;
+    is_btsnoop_filtered = false;
+    vendor_logging_level = HCI_SNOOP_ONLY_HEADER | DYNAMIC_LOGCAT_CAPTURE;
+ } else if (btsnoop_mode == BTSNOOP_MODE_FILTERED) {
     LOG(INFO) << __func__ << ": Filtered Snoop Logs enabled";
     is_btsnoop_enabled = true;
     is_btsnoop_filtered = true;
@@ -418,18 +434,6 @@ static future_t* start_up() {
     is_btsnoop_filtered = false;
     vendor_logging_level = HCI_SNOOP_LOG_FULL | DYNAMIC_LOGCAT_CAPTURE;
     delete_btsnoop_files(true);
-  } else if (btsnoop_mode == BTSNOOP_MODE_MEDIAPKTSFILTERED) {
-    LOG(INFO) << __func__ << ": media pkts Filtered VndSnoop Logs enabled";
-    is_vndbtsnoop_enabled = true;
-    is_btsnoop_enabled = false;
-    is_btsnoop_filtered = false;
-    vendor_logging_level = HCI_SNOOP_LOG_LITE | DYNAMIC_LOGCAT_CAPTURE;
-  } else if (btsnoop_mode == BTSNOOP_MODE_SNOOPHEADERSFILTERED) {
-    LOG(INFO) << __func__ << ": only headers filtered VndSnoop Logs enabled";
-    is_vndbtsnoop_enabled = true;
-    is_btsnoop_enabled = false;
-    is_btsnoop_filtered = false;
-    vendor_logging_level = HCI_SNOOP_ONLY_HEADER | DYNAMIC_LOGCAT_CAPTURE;
   } else if (btsnoop_mode == BTSNOOP_MODE_PROFILESFILTERED) {
     if (is_debuggable) {
       LOG(INFO) << __func__ << ": Profiles filter works only for user build";
