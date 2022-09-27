@@ -505,17 +505,22 @@ void cleanup() {
   if (!is_hal_enabled()) return;
   end_session();
 
-  auto a2dp_sink = active_hal_interface->GetTransportInstance();
-  static_cast<A2dpTransport*>(a2dp_sink)->ResetPendingCmd();
-  static_cast<A2dpTransport*>(a2dp_sink)->ResetPresentationPosition();
-  active_hal_interface = nullptr;
+  if (active_hal_interface != nullptr) {
+    auto a2dp_sink = active_hal_interface->GetTransportInstance();
+    static_cast<A2dpTransport*>(a2dp_sink)->ResetPendingCmd();
+    static_cast<A2dpTransport*>(a2dp_sink)->ResetPresentationPosition();
+    active_hal_interface = nullptr;
+  }
 
-  a2dp_sink = software_hal_interface->GetTransportInstance();
-  delete software_hal_interface;
-  software_hal_interface = nullptr;
-  delete a2dp_sink;
+  if (software_hal_interface != nullptr) {
+    auto a2dp_sink = software_hal_interface->GetTransportInstance();
+    delete software_hal_interface;
+    software_hal_interface = nullptr;
+    delete a2dp_sink;
+  }
+
   if (offloading_hal_interface != nullptr) {
-    a2dp_sink = offloading_hal_interface->GetTransportInstance();
+    auto a2dp_sink = offloading_hal_interface->GetTransportInstance();
     delete offloading_hal_interface;
     offloading_hal_interface = nullptr;
     delete a2dp_sink;

@@ -544,6 +544,11 @@ static void hci_timeout_abort(UNUSED_ATTR void *context) {
 // Print debugging information and quit. Don't dereference original_wait_entry.
 static void command_timed_out(void* original_wait_entry) {
   std::unique_lock<std::recursive_mutex> lock(commands_pending_response_mutex);
+  if (!get_num_waiting_commands()) {
+    LOG_WARN(LOG_TAG, "%s: no command pending for rsp, returning", __func__);
+    return;
+  }
+
   // Dynamically increase command timeout if applicable.
   {
     std::unique_lock<std::mutex> lock(monitor_cmd_stats);

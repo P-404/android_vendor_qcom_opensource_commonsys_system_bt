@@ -462,6 +462,12 @@ static void process_service_attr_rsp(tCONN_CB* p_ccb, uint8_t* p_reply,
     SDP_TRACE_WARNING("list_len: %d, list_byte_count: %d", p_ccb->list_len,
                       list_byte_count);
 #endif
+
+    if (p_reply + list_byte_count + 1 /* continuation */ > p_reply_end) {
+      sdp_disconnect(p_ccb, SDP_INVALID_PDU_SIZE);
+      return;
+    }
+
     if (p_ccb->rsp_list == NULL)
       p_ccb->rsp_list = (uint8_t*)osi_malloc(SDP_MAX_LIST_BYTE_COUNT);
     memcpy(&p_ccb->rsp_list[p_ccb->list_len], p_reply, list_byte_count);

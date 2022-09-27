@@ -1989,6 +1989,31 @@ tBTM_STATUS BTM_ReadRemoteVersion(const RawAddress& addr, uint8_t* lmp_version,
 
 /*******************************************************************************
  *
+ * Function         BTM_ReadRemoteVersionByTransport
+ *
+ * Returns          If connected report peer device info
+ *
+ ******************************************************************************/
+tBTM_STATUS BTM_ReadRemoteVersionByTransport(const RawAddress& addr,
+                                             uint8_t* lmp_version,
+                                             uint16_t* manufacturer,
+                                             uint16_t* lmp_sub_version,
+                                             uint8_t transport) {
+  tACL_CONN* p = btm_bda_to_acl(addr, transport);
+  VLOG(1) << ": BTM_ReadRemoteVersionByTransport, RemBdAddr: " << addr;
+  if (p == NULL) return (BTM_UNKNOWN_ADDR);
+
+  if (lmp_version) *lmp_version = p->lmp_version;
+
+  if (manufacturer) *manufacturer = p->manufacturer;
+
+  if (lmp_sub_version) *lmp_sub_version = p->lmp_subversion;
+
+  return (BTM_SUCCESS);
+}
+
+/*******************************************************************************
+ *
  * Function         BTM_ReadRemoteFeatures
  *
  * Returns          pointer to the remote supported features mask (8 bytes)

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
+/* Changes from Qualcomm Innovation Center are provided under the following license:
  * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 
     * Redistribution and use in source and binary forms, with or without

@@ -203,6 +203,7 @@ typedef enum {
   UART_REASON_RX_BREAK_REASON                    =  0x63,
   UART_REASON_RX_SBE_REASON                      =  0x64,
   SOC_REASON_START_TX_IOS_SOC_RFR_HIGH           =  0x65,
+  UART_REASON_FLOW_OFF                           =  0x66,
 } soc_crash_reason_e;
 
 typedef struct {
@@ -334,7 +335,8 @@ static secondary_reason secondary_crash_reason [] = {
 { UART_REASON_RX_PARITY_REASON                   ,  "UART rx parity error"},
 { UART_REASON_RX_BREAK_REASON                    ,  "UART rx break error"},
 { UART_REASON_RX_SBE_REASON                      ,  "UART rx SBE error"},
-{ SOC_REASON_START_TX_IOS_SOC_RFR_HIGH           ,  "SoC RFR high"}
+{ SOC_REASON_START_TX_IOS_SOC_RFR_HIGH           ,  "SoC RFR high"},
+{ UART_REASON_FLOW_OFF                           ,  "UART flow is OFF"}
 };
 
 enum host_crash_reason_e  {

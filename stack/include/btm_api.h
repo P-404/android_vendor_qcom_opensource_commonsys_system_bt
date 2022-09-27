@@ -649,6 +649,21 @@ extern tBTM_STATUS BTM_ReadRemoteVersion(const RawAddress& addr,
 
 /*******************************************************************************
  *
+ * Function         BTM_ReadRemoteVersionByTransport
+ *
+ * Description      This function is called to read a remote device's version
+ *
+ * Returns          BTM_SUCCESS if successful, otherwise an error
+ *
+ ******************************************************************************/
+extern tBTM_STATUS BTM_ReadRemoteVersionByTransport(const RawAddress& addr,
+                                                    uint8_t* lmp_version,
+                                                    uint16_t* manufacturer,
+                                                    uint16_t* lmp_sub_version,
+                                                    uint8_t transport);
+
+/*******************************************************************************
+ *
  * Function         BTM_ReadRemoteFeatures
  *
  * Description      This function is called to read a remote device's

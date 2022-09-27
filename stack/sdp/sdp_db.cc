@@ -505,8 +505,7 @@ bool SDP_AddAttributeToRecord (tSDP_RECORD *p_rec, uint16_t attr_id,
             attr_len, SDP_MAX_PAD_LEN - p_rec->free_pad_ptr);
 
         attr_len = SDP_MAX_PAD_LEN - p_rec->free_pad_ptr;
-        p_val[SDP_MAX_PAD_LEN - p_rec->free_pad_ptr] = '\0';
-        p_val[SDP_MAX_PAD_LEN - p_rec->free_pad_ptr + 1] = '\0';
+        p_val[SDP_MAX_PAD_LEN - p_rec->free_pad_ptr - 1] = '\0';
       } else
         attr_len = 0;
     }
