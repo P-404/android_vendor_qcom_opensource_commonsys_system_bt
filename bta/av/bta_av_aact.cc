@@ -2407,12 +2407,24 @@ void bta_av_getcap_results(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* p_data) {
 void bta_av_setconfig_rej(tBTA_AV_SCB* p_scb, tBTA_AV_DATA* p_data) {
   tBTA_AV_REJECT reject;
   uint8_t avdt_handle = p_data->ci_setconfig.avdt_handle;
+  uint8_t error_code = p_data->ci_setconfig.err_code;
+  char is_pts_enable[PROPERTY_VALUE_MAX] = "false";
+
+  property_get("persist.vendor.bt.a2dp.pts_enable", is_pts_enable, "false");
+  APPL_TRACE_DEBUG("%s: is_pts_enable: %s", __func__, is_pts_enable);
+  if (!strncmp("true", is_pts_enable, 4)) {
+    error_code = p_data->ci_setconfig.err_code;
+  } else {
+    error_code = AVDT_ERR_UNSUP_CFG;
+  }
 
   bta_av_adjust_seps_idx(p_scb, avdt_handle);
-  APPL_TRACE_DEBUG("%s: sep_idx: %d", __func__, p_scb->sep_idx);
-  AVDT_ConfigRsp(p_scb->avdt_handle, p_scb->avdt_label, AVDT_ERR_UNSUP_CFG, 0);
+  APPL_TRACE_DEBUG("%s: sep_idx: %d, error_code: %d",
+                    __func__, p_scb->sep_idx, error_code);
+  AVDT_ConfigRsp(p_scb->avdt_handle, p_scb->avdt_label, error_code, 0);
 
-  APPL_TRACE_DEBUG("%s peer_address: %s, handle: %d", __func__, p_scb->peer_addr.ToString().c_str(), p_scb->hndl);
+  APPL_TRACE_DEBUG("%s peer_address: %s, handle: %d",
+                   __func__, p_scb->peer_addr.ToString().c_str(), p_scb->hndl);
   //reject.bd_addr = p_data->str_msg.bd_addr;
   reject.bd_addr = p_scb->peer_addr;
   reject.hndl = p_scb->hndl;

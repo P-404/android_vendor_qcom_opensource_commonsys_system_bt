@@ -48,6 +48,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 /*******************************************************************************
@@ -1655,7 +1658,7 @@ static void btif_dm_search_devices_evt(uint16_t event, char* p_param) {
         if (check_adv_audio_cod(cod)) {
           BTIF_TRACE_DEBUG("%s Add to ADV Audio Database %s", __func__,
               bdaddr.ToString().c_str());
-          adv_audio_device_db[bdaddr] = cod;
+          bta_dm_update_adv_audio_db(bdaddr);
         }
 #endif
         if (cod != 0) {

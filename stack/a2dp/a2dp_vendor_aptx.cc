@@ -387,6 +387,17 @@ bool A2DP_VendorDumpCodecInfoAptx(const uint8_t* p_codec_info) {
   return true;
 }
 
+tA2DP_STATUS A2DP_VendorIsCodecConfigMatchAptx(const uint8_t* p_codec_info) {
+  tA2DP_STATUS a2dp_status;
+  tA2DP_APTX_CIE aptx_cie;
+
+  LOG_DEBUG(LOG_TAG, "%s", __func__);
+
+  a2dp_status = A2DP_ParseInfoAptx(&aptx_cie, p_codec_info, false);
+  LOG_DEBUG(LOG_TAG, "%s: a2dp_status: %d", __func__, a2dp_status);
+  return a2dp_status;
+}
+
 const tA2DP_ENCODER_INTERFACE* A2DP_VendorGetEncoderInterfaceAptx(
     const uint8_t* p_codec_info) {
   if (!A2DP_IsVendorSourceCodecValidAptx(p_codec_info)) return NULL;

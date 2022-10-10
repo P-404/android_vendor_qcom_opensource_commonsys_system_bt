@@ -48,6 +48,9 @@
  *  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  *  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 /******************************************************************************
@@ -4964,8 +4967,8 @@ static void bta_dm_observe_results_cb(tBTM_INQ_RESULTS* p_inq, uint8_t* p_eir,
 #ifdef ADV_AUDIO_FEATURE
   if (p_inq->is_adv_audio) {
     BTIF_TRACE_DEBUG("%s Add to ADV Audio Database %s", __func__,
-        p_inq->remote_bd_addr.ToString().c_str());
-    bta_dm_update_adv_audio_db(p_inq->remote_bd_addr);
+        result.inq_res.bd_addr.ToString().c_str());
+    bta_dm_update_adv_audio_db(result.inq_res.bd_addr);
   }
 #endif
 

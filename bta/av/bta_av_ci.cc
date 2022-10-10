@@ -66,7 +66,7 @@ void bta_av_ci_src_data_ready(tBTA_AV_CHNL chnl) {
 void bta_av_ci_setconfig(tBTA_AV_HNDL hndl, uint8_t err_code, uint8_t category,
                          uint8_t num_seid, uint8_t* p_seid, bool recfg_needed,
                          uint8_t avdt_handle) {
-  APPL_TRACE_DEBUG("%s: num_seid: %d", __func__, num_seid);
+  APPL_TRACE_DEBUG("%s: num_seid: %d, err_code: %d", __func__, num_seid, err_code);
   tBTA_AV_CI_SETCONFIG* p_buf =
       (tBTA_AV_CI_SETCONFIG*)osi_malloc(sizeof(tBTA_AV_CI_SETCONFIG));
   uint8_t *p_local_seid = (uint8_t*)osi_malloc(sizeof(uint8_t));

@@ -206,4 +206,8 @@ bool A2DP_VendorInitCodecConfig(btav_a2dp_codec_index_t codec_index,
 // Returns true if the codec information is valid, otherwise false.
 bool A2DP_VendorDumpCodecInfo(const uint8_t* p_codec_info);
 
+// Checks peer initiated setconfig with DUT supported config
+// and returns proper status.
+tA2DP_STATUS A2DP_VendorIsCodecConfigMatch(const uint8_t* p_codec_info);
+
 #endif  // A2DP_VENDOR_H

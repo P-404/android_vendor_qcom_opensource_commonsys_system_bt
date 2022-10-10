@@ -701,6 +701,11 @@ bool A2DP_DumpCodecInfo(const uint8_t* p_codec_info);
 
 void print_codec_config(uint8_t codec_arry[]);
 void print_codec_parameters(btav_a2dp_codec_config_t config);
+
+tA2DP_STATUS A2dp_IsCodecConfigMatch(const uint8_t* p_codec_info);
+
+uint8_t A2dp_SendSetConfigRspErrorCodeForPTS();
+
 // Add enum-based flag operators to the btav_a2dp_codec_config_t fields
 #ifndef DEFINE_ENUM_FLAG_OPERATORS
 #define DEFINE_ENUM_FLAG_OPERATORS(bitmask)                                 \

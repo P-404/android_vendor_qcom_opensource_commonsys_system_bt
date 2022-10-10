@@ -263,4 +263,9 @@ bool A2DP_InitCodecConfigSbcSink(tAVDT_CFG* p_cfg);
 // |is_peer_edr| flag is true if peer is edr else false
 // Returns |uint16_t| bitrate value
 uint16_t A2DP_GetOffloadBitrateSbc(A2dpCodecConfig* config, bool is_peer_edr);
+
+// Checks peer initiated setconfig with DUT supported config
+// and returns proper status.
+tA2DP_STATUS A2DP_IsCodecConfigMatchSbc(const uint8_t* p_codec_info);
+
 #endif  // A2DP_SBC_H

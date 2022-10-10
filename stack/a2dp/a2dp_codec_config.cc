@@ -1110,8 +1110,11 @@ int A2DP_IotGetPeerSinkCodecType(const uint8_t* p_codec_info) {
 #endif
 
 tA2DP_CODEC_TYPE A2DP_GetCodecType(const uint8_t* p_codec_info) {
-  LOG_DEBUG(LOG_TAG, "%s: ", __func__);
-  return (tA2DP_CODEC_TYPE)(p_codec_info[AVDT_CODEC_TYPE_INDEX]);
+  tA2DP_CODEC_TYPE codec_type =
+        (tA2DP_CODEC_TYPE)(p_codec_info[AVDT_CODEC_TYPE_INDEX]);
+
+  LOG_DEBUG(LOG_TAG, "%s: codec_type: %d", __func__, codec_type);
+  return codec_type;
 }
 
 bool A2DP_IsSourceCodecValid(const uint8_t* p_codec_info) {
@@ -1952,6 +1955,57 @@ bool A2DP_DumpCodecInfo(const uint8_t* p_codec_info) {
   LOG_ERROR(LOG_TAG, "%s: unsupported codec type 0x%x", __func__, codec_type);
   return false;
 }
+
+tA2DP_STATUS A2dp_IsCodecConfigMatch(const uint8_t* p_codec_info) {
+  tA2DP_CODEC_TYPE codec_type = A2DP_GetCodecType(p_codec_info);
+
+  LOG_DEBUG(LOG_TAG, "%s: codec_type = 0x%x", __func__, codec_type);
+
+  switch (codec_type) {
+    case A2DP_MEDIA_CT_SBC:
+      return A2DP_IsCodecConfigMatchSbc(p_codec_info);
+
+    case A2DP_MEDIA_CT_AAC:
+      return A2DP_IsCodecConfigMatchAac(p_codec_info);
+
+    case A2DP_MEDIA_CT_NON_A2DP:
+      return A2DP_VendorIsCodecConfigMatch(p_codec_info);
+
+    default:
+      break;
+  }
+
+  LOG_ERROR(LOG_TAG, "%s: unsupported codec type 0x%x", __func__, codec_type);
+  return A2DP_SUCCESS;
+}
+
+uint8_t A2dp_SendSetConfigRspErrorCodeForPTS() {
+
+  LOG_DEBUG(LOG_TAG, "%s:", __func__);
+
+  char is_a2dp_pts_enable[PROPERTY_VALUE_MAX] = "false";
+  char value[PROPERTY_VALUE_MAX] = {'\0'};
+  uint8_t error_code = 0;
+
+  property_get("persist.vendor.bt.a2dp.pts_enable", is_a2dp_pts_enable, "false");
+  APPL_TRACE_DEBUG("%s: is_a2dp_pts_enable: %s", __func__, is_a2dp_pts_enable);
+
+  property_get("persist.vendor.bt.a2dp.set_config_error_code", value, "0");
+
+  int res = sscanf(value, "%hu", &error_code);
+
+  APPL_TRACE_DEBUG("%s: res: %d", __func__, res);
+  APPL_TRACE_DEBUG("%s: error_code: %d", __func__, error_code);
+
+  if (!strncmp("true", is_a2dp_pts_enable, 4) &&
+      (res == 1) && (error_code != 0)) {
+    APPL_TRACE_DEBUG("%s: error_code : %d", __func__, error_code);
+    return error_code;
+  }
+  return error_code;
+}
+
+
 void print_codec_config(uint8_t codec_arry[]) {
    for(int i = 0; i < AVDT_CODEC_SIZE; i++)
    {

@@ -673,8 +673,10 @@ bool avdt_check_sep_state(tAVDT_SCB *p_scb) {
 void avdt_scb_hdl_setconfig_cmd(tAVDT_SCB* p_scb, tAVDT_SCB_EVT* p_data) {
   tAVDT_CFG* p_cfg;
   tA2DP_CODEC_TYPE codec_type;
-  AVDT_TRACE_WARNING("avdt_scb_hdl_setconfig_cmd: SCB in use: %d, Conn in progress: %d, avdt_check_sep_state: %d",
-       p_scb->in_use, avdt_cb.conn_in_progress[p_scb->peer_addr], avdt_check_sep_state(p_scb));
+  AVDT_TRACE_WARNING("%s: SCB in use: %d, Conn in progress: %d,"
+                     " avdt_check_sep_state: %d", __func__, p_scb->in_use,
+                     avdt_cb.conn_in_progress[p_scb->peer_addr],
+                     avdt_check_sep_state(p_scb));
 
   if ((!p_scb->in_use) && !(avdt_check_sep_state(p_scb)) &&
       (!avdt_cb.conn_in_progress[p_scb->peer_addr])) {
@@ -682,7 +684,8 @@ void avdt_scb_hdl_setconfig_cmd(tAVDT_SCB* p_scb, tAVDT_SCB_EVT* p_data) {
     A2DP_DumpCodecInfo(p_data->msg.config_cmd.p_cfg->codec_info);
     p_cfg = p_data->msg.config_cmd.p_cfg;
     codec_type = A2DP_GetCodecType(p_cfg->codec_info);
-    AVDT_TRACE_DEBUG("%s: Incoming codec_type: %x, min/max bitpool: %x/%x", __func__, codec_type,
+    AVDT_TRACE_DEBUG("%s: Incoming codec_type: %x, min/max bitpool: %x/%x",
+                       __func__, codec_type,
                        p_cfg->codec_info[A2DP_SBC_IE_MIN_BITPOOL_OFFSET],
                        p_cfg->codec_info[A2DP_SBC_IE_MAX_BITPOOL_OFFSET]);
     if (A2DP_GetCodecType(p_scb->cs.cfg.codec_info) == codec_type) {
@@ -750,6 +753,18 @@ void avdt_scb_hdl_setconfig_cmd(tAVDT_SCB* p_scb, tAVDT_SCB_EVT* p_data) {
                                 (tAVDT_CTRL*)&p_data->msg.config_cmd);
     } else {
       p_data->msg.hdr.err_code = AVDT_ERR_UNSUP_CFG;
+
+      uint8_t error_code = 0;
+      error_code = A2dp_SendSetConfigRspErrorCodeForPTS();
+      APPL_TRACE_DEBUG("%s: error_code: %d", __func__, error_code);
+
+      //error_code is valid for PTS only as of now.
+      if (error_code != 0) {
+        APPL_TRACE_DEBUG("%s: Overwrite setconf errorcode passed by prop"
+                                                      " for PTS.", __func__);
+        p_data->msg.hdr.err_code = error_code;
+      }
+
       p_data->msg.hdr.err_param = 0;
       AVDT_TRACE_DEBUG("%s: called avdt_msg_send_rej()", __func__);
       avdt_msg_send_rej(avdt_ccb_by_idx(p_data->msg.hdr.ccb_idx),

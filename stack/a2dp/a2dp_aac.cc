@@ -253,19 +253,30 @@ static tA2DP_STATUS A2DP_BuildInfoAac(uint8_t media_type,
 static tA2DP_STATUS A2DP_ParseInfoAac(tA2DP_AAC_CIE* p_ie,
                                       const uint8_t* p_codec_info,
                                       bool is_capability) {
+  char is_a2dp_pts[PROPERTY_VALUE_MAX] = "false";
   uint8_t losc;
   uint8_t media_type;
   tA2DP_CODEC_TYPE codec_type;
-   LOG_DEBUG(LOG_TAG, "%s: ", __func__);
+  LOG_DEBUG(LOG_TAG, "%s: is_capability: %d", __func__, is_capability);
 
-  if (p_ie == NULL || p_codec_info == NULL) return A2DP_INVALID_PARAMS;
+  if (p_ie == NULL || p_codec_info == NULL) {
+    LOG_DEBUG(LOG_TAG, "%s: aac p_ie/p_codec_info is null", __func__);
+    return A2DP_INVALID_PARAMS;
+  }
 
   // Check the codec capability length
   losc = *p_codec_info++;
-  if (losc != A2DP_AAC_CODEC_LEN) return A2DP_WRONG_CODEC;
+  LOG_DEBUG(LOG_TAG, "%s: losc: %d", __func__, losc);
+  if (losc != A2DP_AAC_CODEC_LEN) {
+    LOG_DEBUG(LOG_TAG, "%s: losc is not valid", __func__);
+    return A2DP_WRONG_CODEC;
+  }
 
   media_type = (*p_codec_info++) >> 4;
   codec_type = *p_codec_info++;
+
+  LOG_DEBUG(LOG_TAG, "%s: media_type: %d, codec_type: %d",
+                               __func__, media_type, codec_type);
   /* Check the Media Type and Media Codec Type */
   if (media_type != AVDT_MEDIA_TYPE_AUDIO || codec_type != A2DP_MEDIA_CT_AAC) {
     return A2DP_WRONG_CODEC;
@@ -285,16 +296,32 @@ static tA2DP_STATUS A2DP_ParseInfoAac(tA2DP_AAC_CIE* p_ie,
                   (*(p_codec_info + 1) << 8 & A2DP_AAC_BIT_RATE_MASK1) |
                   (*(p_codec_info + 2) & A2DP_AAC_BIT_RATE_MASK2);
   p_codec_info += 3;
-  LOG_DEBUG(LOG_TAG, "%s: p_ie->bitRate: %u", __func__, p_ie->bitRate);
+  LOG_DEBUG(LOG_TAG, "%s: p_ie->objectType: %d, p_ie->sampleRate: %u,"
+                     " p_ie->channelMode: %d, p_ie->variableBitRateSupport: %d,"
+                     " p_ie->bitRate: %u,", __func__, p_ie->objectType,
+                     p_ie->sampleRate, p_ie->channelMode,
+                     p_ie->variableBitRateSupport, p_ie->bitRate);
 
   if (is_capability) return A2DP_SUCCESS;
 
-  if (A2DP_BitsSet(p_ie->objectType) != A2DP_SET_ONE_BIT)
+  if (A2DP_BitsSet(p_ie->objectType) != A2DP_SET_ONE_BIT) {
+    LOG_DEBUG(LOG_TAG, "%s: bad obj type", __func__);
     return A2DP_BAD_OBJ_TYPE;
-  if (A2DP_BitsSet(p_ie->sampleRate) != A2DP_SET_ONE_BIT)
+  }
+  if (A2DP_BitsSet(p_ie->sampleRate) != A2DP_SET_ONE_BIT) {
+    LOG_DEBUG(LOG_TAG, "%s: bad sample rate", __func__);
     return A2DP_BAD_SAMP_FREQ;
-  if (A2DP_BitsSet(p_ie->channelMode) != A2DP_SET_ONE_BIT)
+  }
+  if (A2DP_BitsSet(p_ie->channelMode) != A2DP_SET_ONE_BIT) {
+    property_get("persist.vendor.bt.a2dp.pts_enable", is_a2dp_pts, "false");
+    LOG_DEBUG(LOG_TAG, "%s: is_a2dp_pts: %s", __func__, is_a2dp_pts);
+    if (!strncmp("true", is_a2dp_pts, 4)) {
+      LOG_DEBUG(LOG_TAG, "%s: bad channel", __func__);
+      return A2DP_BAD_CHANNEL;
+    }
+    LOG_DEBUG(LOG_TAG, "%s: bad channel mode", __func__);
     return A2DP_BAD_CH_MODE;
+  }
 
   return A2DP_SUCCESS;
 }
@@ -730,6 +757,17 @@ bool A2DP_DumpCodecInfoAac(const uint8_t* p_codec_info) {
   LOG_DEBUG(LOG_TAG, "\tbitRate: %u", aac_cie.bitRate);
 
   return true;
+}
+
+tA2DP_STATUS A2DP_IsCodecConfigMatchAac(const uint8_t* p_codec_info) {
+  tA2DP_STATUS a2dp_status;
+  tA2DP_AAC_CIE aac_cie;
+
+  LOG_DEBUG(LOG_TAG, "%s", __func__);
+
+  a2dp_status = A2DP_ParseInfoAac(&aac_cie, p_codec_info, false);
+  LOG_DEBUG(LOG_TAG, "%s: a2dp_status: %d", __func__, a2dp_status);
+  return a2dp_status;
 }
 
 const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterfaceAac(

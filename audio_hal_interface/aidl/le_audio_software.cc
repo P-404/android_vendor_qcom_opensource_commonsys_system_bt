@@ -115,8 +115,8 @@ BluetoothAudioCtrlAck LeAudioTransport::StartRequest(bool is_low_latency,
   uint8_t profile = is_broadcast_session_ ? BROADCAST : AUDIO_GROUP_MGR;
 
   LOG(INFO) << __func__ << ": is_low_latency: " << is_low_latency
-                        << ", direction: " << direction
-                        << ", profile: " << profile;
+                        << ", direction: " << loghex(direction)
+                        << ", profile: " << loghex(profile);
   btif_ahim_process_request(A2DP_CTRL_CMD_START, profile, direction);
   lea_pending_cmd_ = A2DP_CTRL_CMD_START;
   is_pending_start_request_ = true;
@@ -127,8 +127,8 @@ BluetoothAudioCtrlAck LeAudioTransport::SuspendRequest(uint8_t direction) {
   BluetoothAudioCtrlAck status = BluetoothAudioCtrlAck::PENDING;
   uint8_t profile = is_broadcast_session_ ? BROADCAST : AUDIO_GROUP_MGR;
 
-  LOG(INFO) << __func__ << ": direction: " << direction
-                        << ", profile: " << profile;
+  LOG(INFO) << __func__ << ": direction: " << loghex(direction)
+                        << ", profile: " << loghex(profile);
   btif_ahim_process_request(A2DP_CTRL_CMD_SUSPEND, profile, direction);
   lea_pending_cmd_ = A2DP_CTRL_CMD_SUSPEND;
   return status;
@@ -137,8 +137,8 @@ BluetoothAudioCtrlAck LeAudioTransport::SuspendRequest(uint8_t direction) {
 void LeAudioTransport::StopRequest(uint8_t direction) {
   uint8_t profile = is_broadcast_session_ ? BROADCAST : AUDIO_GROUP_MGR;
 
-  LOG(INFO) << __func__ << ": direction: " << direction
-                        << ", profile: " << profile;
+  LOG(INFO) << __func__ << ": direction: " << loghex(direction)
+                        << ", profile: " << loghex(profile);
   btif_ahim_process_request(A2DP_CTRL_CMD_STOP, profile, direction);
 }
 
