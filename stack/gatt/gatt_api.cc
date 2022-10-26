@@ -35,6 +35,7 @@
 #include "stack/gatt/connection_manager.h"
 #include "stack/gatt/eatt_int.h"
 #include "btif_storage.h"
+#include "stack_config.h"
 
 #define SYSTEM_APP_GATT_IF 3
 
@@ -354,7 +355,9 @@ uint16_t GATTS_AddService(tGATT_IF gatt_if, btgatt_db_element_t* service,
           << ", sdp_hdl=" << loghex(elem.sdp_handle);
 
   gatt_update_for_database_change();
-  gatt_proc_srv_chg();
+  if (!stack_config_get_interface()->get_pts_service_chg_indication_disable()) {
+    gatt_proc_srv_chg();
+  }
 
   return GATT_SERVICE_STARTED;
 }
@@ -409,7 +412,9 @@ bool GATTS_DeleteService(tGATT_IF gatt_if, Uuid* p_svc_uuid,
   }
 
   gatt_update_for_database_change();
-  gatt_proc_srv_chg();
+  if (!stack_config_get_interface()->get_pts_service_chg_indication_disable()) {
+    gatt_proc_srv_chg();
+  }
 
   VLOG(1) << "released handles s_hdl=" << loghex(it->asgn_range.s_handle)
           << ", e_hdl=" << loghex(it->asgn_range.e_handle);

@@ -73,6 +73,8 @@
 #include "sdp_api.h"
 #include "stack/gatt/connection_manager.h"
 #include "stack/gatt/eatt_int.h"
+#include "btif_storage.h"
+#include "stack_config.h"
 
 #include <vector>
 #include <algorithm>
@@ -535,8 +537,10 @@ tGATT_TCB* gatt_allocate_tcb_by_bdaddr(const RawAddress& bda,
     p_tcb->tcb_idx = i;
     p_tcb->transport = transport;
     p_tcb->peer_bda = bda;
+    if (stack_config_get_interface()->get_pts_configure_svc_chg_indication())
+      p_tcb->svc_chg_cccd = btif_storage_get_svc_chg_cccd(bda);
     gatt_sr_init_cl_status(*p_tcb);
-
+    p_tcb->is_db_out_of_sync_sent = false;
     return p_tcb;
   }
 

@@ -15,6 +15,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 #include "bt_target.h"
@@ -299,15 +303,23 @@ class BleAdvertisingManagerImpl
   void RegisterAdvertiser(
       base::Callback<void(uint8_t /* inst_id */, uint8_t /* status */)> cb)
       override {
+    int own_address_type =
+        BTM_BleLocalPrivacyEnabled() ? BLE_ADDR_RANDOM : BLE_ADDR_PUBLIC;
+    RegisterAdvertiserImpl(own_address_type, cb);
+  }
+
+  void RegisterAdvertiserImpl(
+      int own_address_type,
+      base::Callback<void(uint8_t /* inst_id */, uint8_t /* status */)> cb) {
     AdvertisingInstance* p_inst = &adv_inst[0];
     for (uint8_t i = 0; i < inst_count; i++, p_inst++) {
       if (p_inst->in_use) continue;
 
       p_inst->in_use = true;
+      p_inst->own_address_type = own_address_type;
 
       // set up periodic timer to update address.
-      if (BTM_BleLocalPrivacyEnabled()) {
-        p_inst->own_address_type = BLE_ADDR_RANDOM;
+      if (own_address_type != BLE_ADDR_PUBLIC) {
         if (!rpa_gen_offload_enabled) {
           GenerateRpa(Bind(
             [](AdvertisingInstance* p_inst,
@@ -330,7 +342,6 @@ class BleAdvertisingManagerImpl
           cb.Run(p_inst->inst_id, BTM_BLE_MULTI_ADV_SUCCESS);
         }
       } else {
-        p_inst->own_address_type = BLE_ADDR_PUBLIC;
         p_inst->own_address = *controller_get_interface()->get_address();
 
         cb.Run(p_inst->inst_id, BTM_BLE_MULTI_ADV_SUCCESS);
@@ -473,10 +484,17 @@ class BleAdvertisingManagerImpl
     c->maxExtAdvEvents = maxExtAdvEvents;
     c->timeout_cb = std::move(timeout_cb);
 
+    int own_address_type =
+        BTM_BleLocalPrivacyEnabled() ? BLE_ADDR_RANDOM : BLE_ADDR_PUBLIC;
+    if (params->own_address_type != BLE_ADDR_ANONYMOUS
+        && params->own_address_type != BLE_ADDR_DEFAULT) {
+        own_address_type = params->own_address_type;
+    }
+
     // this code is intentionally left formatted this way to highlight the
     // asynchronous flow
     // clang-format off
-    c->self->RegisterAdvertiser(Bind(
+    c->self->RegisterAdvertiserImpl(own_address_type, Bind(
       [](c_type c, uint8_t advertiser_id, uint8_t status) {
         if (!c->self) {
           LOG(INFO) << "Stack was shut down";
@@ -1348,6 +1366,7 @@ void btm_ble_adv_init() {
 
   if (BleAdvertiserHciInterface::Get()->QuirkAdvertiserZeroHandle()) {
     // If handle 0 can't be used, register advertiser for it, but never use it.
+    // TODO: avoid generating/rotating RPA for it
     BleAdvertisingManager::Get().get()->RegisterAdvertiser(base::DoNothing());
   }
   auto ble_adv_mgr_ptr = (BleAdvertisingManagerImpl*)BleAdvertisingManager::Get().get();

@@ -97,6 +97,7 @@ using bluetooth::Uuid;
 #define BTIF_STORAGE_KEY_EATT_SUPPORT "EattSupport"
 #define BTIF_STORAGE_KEY_CLIENT_SUPP_FEAT "ClientSupportedFeaturesChar"
 #define BTIF_STORAGE_KEY_GATT_CLIENT_DB_HASH "GattClientDatabaseHash"
+#define BTIF_STORAGE_KEY_SVC_CHG_CCCD "ServiceChangedCCCD"
 
 /* This is a local property to add a device found */
 #define BT_PROPERTY_REMOTE_DEVICE_TIMESTAMP 0xFF
@@ -2496,4 +2497,41 @@ void btif_storage_remove_gatt_cl_db_hash(const RawAddress& bd_addr) {
                          }
                        },
                        bd_addr));
+}
+
+/** Store service changed CCCD value for remote client */
+void btif_storage_set_svc_chg_cccd(const RawAddress& bd_addr, uint8_t cccd) {
+  do_in_jni_thread(FROM_HERE, Bind(
+                                  [](const RawAddress& bd_addr, uint8_t cccd) {
+                                    auto bdstr = bd_addr.ToString();
+                                    btif_config_set_int(
+                                        bdstr.c_str(), BTIF_STORAGE_KEY_SVC_CHG_CCCD, cccd);
+                                    btif_config_save();
+                                  },
+                                  bd_addr, cccd));
+}
+
+/** Get service changed CCCD value for remote client */
+uint8_t btif_storage_get_svc_chg_cccd(const RawAddress& bda) {
+  std::string bda_str = bda.ToString();
+  int cccd = 0;
+
+  btif_config_get_int(bda_str.c_str(), BTIF_STORAGE_KEY_SVC_CHG_CCCD, &cccd);
+  return cccd;
+}
+
+/** Remove service changed CCCD value for remote client */
+void btif_storage_remove_svc_chg_cccd(const RawAddress& bd_addr) {
+  do_in_jni_thread(
+      FROM_HERE, Bind(
+                     [](const RawAddress& bd_addr) {
+                       auto bdstr = bd_addr.ToString();
+                       if (btif_config_exist(
+                               bdstr.c_str(), BTIF_STORAGE_KEY_SVC_CHG_CCCD)) {
+                         btif_config_remove(
+                               bdstr.c_str(), BTIF_STORAGE_KEY_SVC_CHG_CCCD);
+                         btif_config_save();
+                       }
+                     },
+                     bd_addr));
 }

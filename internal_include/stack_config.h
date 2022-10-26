@@ -43,6 +43,9 @@ typedef struct {
   int (*get_pts_bredr_invalid_encryption_keysize)(void);
   int (*get_pts_le_enc_disable)(void);
   int (*get_pts_smp_disable_h7_support)(void);
+  bool (*get_pts_service_chg_indication_disable)(void);
+  bool (*get_pts_configure_svc_chg_indication)(void);
+  bool (*get_pts_save_db_hash)(void);
   config_t* (*get_all)(void);
 } stack_config_t;
 

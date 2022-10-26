@@ -157,7 +157,7 @@ void A2dpTransport::StopRequest() {
 bool A2dpTransport::GetPresentationPosition(uint64_t* remote_delay_report_ns,
                                             uint64_t* total_bytes_read,
                                             timespec* data_position) {
-  *remote_delay_report_ns = remote_delay_report_ * 100000u;
+  *remote_delay_report_ns = remote_delay_report_ * 100000ULL;
   *total_bytes_read = total_bytes_read_;
   *data_position = data_position_;
   LOG(INFO) << __func__ << "AIDL: delay=" << remote_delay_report_

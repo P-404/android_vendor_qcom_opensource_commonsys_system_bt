@@ -14,6 +14,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 /******************************************************************************
@@ -92,9 +95,14 @@ void l2c_rcv_acl_data(BT_HDR* p_msg) {
       /* So for these types of messages, hold them for up to 2 seconds.       */
       STREAM_TO_UINT16(hci_len, p);
       STREAM_TO_UINT16(l2cap_len, p);
+      if (l2cap_len == 0) {
+        L2CAP_TRACE_WARNING("%s:received empty L2CAP packet on Handle:%d",
+            __func__, handle);
+        osi_free(p_msg);
+        return;
+      }
       STREAM_TO_UINT16(rcv_cid, p);
       STREAM_TO_UINT8(cmd_code, p);
-
       if (handle == 0xedc) {    /* Handle 0x2edc used for SOC debug Logging */
         p += 1;              /* move offset to extract soc log id type */
         STREAM_TO_UINT16 (soc_log_stats_id, p);
@@ -147,6 +155,12 @@ void l2c_rcv_acl_data(BT_HDR* p_msg) {
 
   /* Extract the length and CID */
   STREAM_TO_UINT16(l2cap_len, p);
+  if (l2cap_len == 0) {
+    L2CAP_TRACE_WARNING(" %s: received empty L2CAP packet on handle: %d",
+        __func__, handle);
+    osi_free(p_msg);
+    return;
+  }
   STREAM_TO_UINT16(rcv_cid, p);
 
   /* for BLE channel, always notify connection when ACL data received on the

@@ -42,6 +42,9 @@ const char* PTS_BREDR_SECURECONNECTION_HOSTSUPPORT_DISABLE = "PTS_BredrSecConnHo
 const char* PTS_BREDR_INVALID_ENCRYPTION_KEYSIZE = "PTS_BredrInvalidEncryKeysize";
 const char* PTS_LE_DISABLE_ENCRYP = "PTS_LeDisableEncryp";
 const char* PTS_SMP_DISABLE_H7_SUPPORT = "PTS_DisableH7Support";
+const char* PTS_DISABLE_SERVICE_CHG_INDICATION = "PTS_DisableServiceChangeIndication";
+const char* PTS_CONFIGURE_SERVICE_CHG_INDICATION = "PTS_ConfigureServiceChangeIndication";
+const char* PTS_SAVE_DB_HASH = "PTS_SaveDbHash";
 
 static config_t* config;
 
@@ -165,6 +168,21 @@ static int get_pts_bredr_invalid_encryption_keysize(void) {
                         PTS_BREDR_INVALID_ENCRYPTION_KEYSIZE, 0);
 }
 
+static bool get_pts_service_chg_indication_disable(void) {
+  return config_get_bool(config, CONFIG_DEFAULT_SECTION,
+                         PTS_DISABLE_SERVICE_CHG_INDICATION, false);
+}
+
+static bool get_pts_configure_svc_chg_indication(void) {
+  return config_get_bool(config, CONFIG_DEFAULT_SECTION,
+                         PTS_CONFIGURE_SERVICE_CHG_INDICATION, false);
+}
+
+static bool get_pts_save_db_hash(void) {
+  return config_get_bool(config, CONFIG_DEFAULT_SECTION,
+                         PTS_SAVE_DB_HASH, false);
+}
+
 static config_t* get_all(void) { return config; }
 
 const stack_config_t interface = {get_trace_config_enabled,
@@ -184,6 +202,9 @@ const stack_config_t interface = {get_trace_config_enabled,
                                   get_pts_bredr_invalid_encryption_keysize,
                                   get_pts_le_enc_disable,
                                   get_pts_smp_disable_h7_support,
+                                  get_pts_service_chg_indication_disable,
+                                  get_pts_configure_svc_chg_indication,
+                                  get_pts_save_db_hash,
                                   get_all};
 
 const stack_config_t* stack_config_get_interface(void) { return &interface; }

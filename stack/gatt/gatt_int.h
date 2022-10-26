@@ -353,6 +353,9 @@ typedef struct {
   bool is_conn_cb_sent_eatt_sr_apps;
   std::vector<tGATT_IF> sr_eatt_apps;
   bool is_att_rsp_tout;
+
+  uint8_t svc_chg_cccd;
+  bool is_db_out_of_sync_sent;
 } tGATT_TCB;
 
 typedef struct {
@@ -766,5 +769,8 @@ extern void gatt_notify_eatt_congestion(tGATT_TCB* p_tcb, uint16_t cid, bool con
 /* gatt_sr_hash.cc */
 extern Octet16 gatts_calculate_database_hash(
     std::list<tGATT_SRV_LIST_ELEM>* lst_ptr);
+
+// Saves DB hash
+extern void gatt_save_cl_db_hash(tGATT_TCB tcb);
 
 #endif

@@ -1443,26 +1443,10 @@ static bool gatts_process_db_out_of_sync(tGATT_TCB& tcb, uint16_t cid,
         should_ignore = false;
 
     } break;
-    case GATT_REQ_READ: {
-      // Check if read database hash by handle
-      uint16_t handle = 0;
-      uint8_t* p = p_data;
-      tGATT_STATUS status = GATT_SUCCESS;
-
-      if (len < 2) {
-        status = GATT_INVALID_PDU;
-      } else {
-        STREAM_TO_UINT16(handle, p);
-        len -= 2;
-      }
-
-      if (status == GATT_SUCCESS && handle == gatt_get_db_hash_char_handle())
-        should_ignore = false;
-
-    } break;
     case GATT_REQ_READ_BY_GRP_TYPE: /* discover primary services */
     case GATT_REQ_FIND_TYPE_VALUE:  /* discover service by UUID */
     case GATT_REQ_FIND_INFO:        /* discover char descrptor */
+    case GATT_REQ_READ:             /* read char/char descriptor */
     case GATT_REQ_READ_BLOB:        /* read long char */
     case GATT_REQ_READ_MULTI:       /* read multi char*/
     case GATT_REQ_WRITE:            /* write char/char descriptor value */
@@ -1485,11 +1469,11 @@ static bool gatts_process_db_out_of_sync(tGATT_TCB& tcb, uint16_t cid,
     if (should_rsp) {
       gatt_send_error_rsp(tcb, cid, GATT_DATABASE_OUT_OF_SYNC, op_code, 0x0000,
                           false);
+      tcb.is_db_out_of_sync_sent = true;
     }
     LOG(INFO) << __func__ << ": database out of sync, device=" << tcb.peer_bda
               << ", op_code=" << loghex((uint16_t)op_code)
               << ", should_rsp=" << should_rsp;
-    gatt_sr_update_cl_status(tcb, /* chg_aware= */ should_rsp);
   }
 
   return should_ignore;
@@ -1503,6 +1487,14 @@ void gatt_server_handle_client_req(tGATT_TCB& tcb, uint16_t lcid, uint8_t op_cod
   if (!gatt_sr_cmd_empty(tcb, lcid) && op_code != GATT_HANDLE_VALUE_CONF) {
     LOG(ERROR) << __func__ << "Server Command Queue is not empty. Discard this cmd.";
     return;
+  }
+
+  if ((op_code != GATT_CMD_WRITE) && (op_code != GATT_SIGN_CMD_WRITE)
+      && (op_code != GATT_HANDLE_VALUE_CONF)) {
+    if (tcb.is_db_out_of_sync_sent) {
+      gatt_sr_update_cl_status(tcb, /* chg_aware= */ true);
+      tcb.is_db_out_of_sync_sent = false;
+    }
   }
 
   payload_size = gatt_get_payload_size(&tcb, lcid);

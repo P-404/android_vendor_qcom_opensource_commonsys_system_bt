@@ -982,9 +982,38 @@ void btif_ahim_set_remote_delay(uint16_t delay_report, uint8_t profile) {
   if (btif_ahim_is_aosp_aidl_hal_enabled()) {
     if (profile == A2DP) {
       bluetooth::audio::aidl::a2dp::set_remote_delay(delay_report);
+    } else if (profile == AUDIO_GROUP_MGR) {
+     uint16_t profile_type =
+               btif_ahim_get_lea_active_profile(profile);
+        if(profile_type == BAP || profile_type == GCP) {  // ToAIr only
+          if(unicastSinkClientInterface)
+            unicastSinkClientInterface->SetRemoteDelay(delay_report);
+        } else if(profile_type == BAP_CALL ||
+                  profile_type == GCP_RX) { // Toair and FromAir
+          if(unicastSinkClientInterface)
+            unicastSinkClientInterface->SetRemoteDelay(delay_report);
+          if(unicastSourceClientInterface)
+            unicastSourceClientInterface->SetRemoteDelay(delay_report);
+        } else if(profile_type == WMCP) { // FromAir only
+          if(unicastSourceClientInterface)
+            unicastSourceClientInterface->SetRemoteDelay(delay_report);
+        }
+
+    } else if (profile == BROADCAST) {
+        if (broadcastSinkClientInterface)
+          broadcastSinkClientInterface->SetRemoteDelay(delay_report);
+        else {
+        if (broadcastSinkClientInterface)
+          broadcastSinkClientInterface->SetRemoteDelay(delay_report);
+      }
     }
   } else if (btif_ahim_is_qc_hal_enabled()) {
-    bluetooth::audio::aidl::a2dp::set_remote_delay(delay_report);
+    BTIF_TRACE_IMP("%s: QC", __func__);
+    if (cur_active_profile == profile) {
+      bluetooth::audio::aidl::a2dp::set_remote_delay(delay_report);
+    } else {
+      BTIF_TRACE_WARNING("%s, ACK ignored from inactive profile", __func__);
+    }
   }
 }
 

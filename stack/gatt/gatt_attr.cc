@@ -69,6 +69,7 @@
 #include "btif_storage.h"
 #include "stack/gatt/eatt_int.h"
 #include "stack/btm/btm_int.h"
+#include "stack_config.h"
 
 using base::StringPrintf;
 using bluetooth::Uuid;
@@ -102,7 +103,7 @@ typedef struct {
   uint8_t value[GATT_MAX_ATTR_LEN];
 } tGATT_ATTR_INFO;
 
-constexpr int GATT_MAX_CHAR_NUM = 3;
+constexpr int GATT_MAX_CHAR_NUM = 4;
 std::array<tGATT_ATTR_INFO, GATT_MAX_CHAR_NUM> gatt_attr_db;
 
 static void gatt_request_cback(uint16_t conn_id, uint32_t trans_id,
@@ -135,6 +136,9 @@ static tGATT_STATUS gatt_sr_read_cl_supp_feat(uint16_t conn_id,
                                               tGATT_VALUE* p_value);
 static tGATT_STATUS gatt_sr_write_cl_supp_feat(uint16_t conn_id,
                                                tGATT_WRITE_REQ* p_data);
+
+static tGATT_STATUS gatt_sr_write_cccd(uint16_t conn_id,
+                                       tGATT_WRITE_REQ* p_data);
 
 static tGATT_CBACK gatt_profile_cback = {gatt_connect_cback,
                                          gatt_cl_op_cmpl_cback,
@@ -429,6 +433,12 @@ tGATT_STATUS proc_write_req(uint16_t conn_id, tGATT_WRITE_REQ* p_data) {
       if (db_attr.uuid == GATT_UUID_DATABASE_HASH) {
         return GATT_WRITE_NOT_PERMIT;
       }
+      if (stack_config_get_interface()->get_pts_configure_svc_chg_indication()) {
+        /* GATT_UUID_CHAR_CLIENT_CONFIG */
+        if (db_attr.uuid == GATT_UUID_CHAR_CLIENT_CONFIG) {
+          return gatt_sr_write_cccd(conn_id, p_data);
+        }
+      }
     }
   }
   return GATT_WRITE_NOT_PERMIT;
@@ -477,13 +487,10 @@ static void gatt_request_cback(uint16_t conn_id, uint32_t trans_id,
       break;
 
     case GATTS_REQ_TYPE_WRITE_CHARACTERISTIC:
+    case GATTS_REQ_TYPE_WRITE_DESCRIPTOR:
       if (!p_data->write_req.need_rsp) ignore = true;
 
       status = proc_write_req(conn_id, &p_data->write_req);
-      break;
-
-    case GATTS_REQ_TYPE_WRITE_DESCRIPTOR:
-      status = GATT_WRITE_NOT_PERMIT;
       break;
 
     case GATTS_REQ_TYPE_WRITE_EXEC:
@@ -560,6 +567,9 @@ static void gatt_connect_cback(UNUSED_ATTR tGATT_IF gatt_if,
     LOG(INFO) << __func__ << ": remove untrusted client status, bda=" << bda;
     btif_storage_remove_gatt_cl_supp_feat(bda);
     btif_storage_remove_gatt_cl_db_hash(bda);
+    if (stack_config_get_interface()->get_pts_configure_svc_chg_indication()) {
+      btif_storage_remove_svc_chg_cccd(bda);
+    }
   }
 
   tGATT_PROFILE_CLCB* p_clcb =
@@ -592,6 +602,9 @@ static void gatt_connect_cback(UNUSED_ATTR tGATT_IF gatt_if,
  ******************************************************************************/
 void gatt_profile_db_init(void) {
   uint16_t service_handle = 0;
+  uint8_t base_index = 0;
+  btgatt_db_element_t service[6];
+  int size_of_svc = 0;
 
   /* Fill our internal UUID with a fixed pattern 0x81 */
   std::array<uint8_t, Uuid::kNumBytes128> tmp;
@@ -610,35 +623,68 @@ void gatt_profile_db_init(void) {
   Uuid sr_supp_feat_char_uuid = Uuid::From16Bit(GATT_UUID_GATT_SR_SUPP_FEATURES);
   Uuid cl_supp_feat_char_uuid = Uuid::From16Bit(GATT_UUID_GATT_CL_SUPP_FEATURES);
   Uuid database_hash_uuid = Uuid::From16Bit(GATT_UUID_DATABASE_HASH);
+  Uuid cccd_uuid = Uuid::From16Bit(GATT_UUID_CHAR_CLIENT_CONFIG);
 
-  btgatt_db_element_t service[] = {
-      {.type = BTGATT_DB_PRIMARY_SERVICE, .uuid = service_uuid},
-      {.type = BTGATT_DB_CHARACTERISTIC,
-       .uuid = char_uuid,
-       .properties = GATT_CHAR_PROP_BIT_INDICATE,
-       .permissions = 0},
-      {.type = BTGATT_DB_CHARACTERISTIC,
-       .uuid = sr_supp_feat_char_uuid,
-       .properties = GATT_CHAR_PROP_BIT_READ,
-       .permissions = GATT_PERM_READ},
-      {.type = BTGATT_DB_CHARACTERISTIC,
-       .uuid = cl_supp_feat_char_uuid,
-       .properties = (GATT_CHAR_PROP_BIT_READ | GATT_CHAR_PROP_BIT_WRITE),
-       .permissions = (GATT_PERM_READ | GATT_PERM_WRITE)},
-      {.uuid = database_hash_uuid,
-       .type = BTGATT_DB_CHARACTERISTIC,
-       .properties = GATT_CHAR_PROP_BIT_READ,
-       .permissions = GATT_PERM_READ,
-      }};
+  if (stack_config_get_interface()->get_pts_configure_svc_chg_indication()) {
+    btgatt_db_element_t svc[] = {
+        {.type = BTGATT_DB_PRIMARY_SERVICE, .uuid = service_uuid},
+        {.type = BTGATT_DB_CHARACTERISTIC,
+         .uuid = char_uuid,
+         .properties = GATT_CHAR_PROP_BIT_INDICATE,
+         .permissions = 0},
+        {.type = BTGATT_DB_DESCRIPTOR,
+         .uuid = cccd_uuid,
+         .permissions = (GATT_PERM_READ | GATT_PERM_WRITE)},
+        {.type = BTGATT_DB_CHARACTERISTIC,
+         .uuid = sr_supp_feat_char_uuid,
+         .properties = GATT_CHAR_PROP_BIT_READ,
+         .permissions = GATT_PERM_READ},
+        {.type = BTGATT_DB_CHARACTERISTIC,
+         .uuid = cl_supp_feat_char_uuid,
+         .properties = (GATT_CHAR_PROP_BIT_READ | GATT_CHAR_PROP_BIT_WRITE),
+         .permissions = (GATT_PERM_READ | GATT_PERM_WRITE)},
+        {.uuid = database_hash_uuid,
+         .type = BTGATT_DB_CHARACTERISTIC,
+         .properties = GATT_CHAR_PROP_BIT_READ,
+         .permissions = GATT_PERM_READ,
+        }};
 
-  GATTS_AddService(gatt_cb.gatt_if, service,
-                   sizeof(service) / sizeof(btgatt_db_element_t));
+    std::copy(std::begin(svc), std::end(svc), std::begin(service));
+    size_of_svc = 6;
+    base_index = 1;
+  }
+  else {
+    btgatt_db_element_t svc[] = {
+        {.type = BTGATT_DB_PRIMARY_SERVICE, .uuid = service_uuid},
+        {.type = BTGATT_DB_CHARACTERISTIC,
+         .uuid = char_uuid,
+         .properties = GATT_CHAR_PROP_BIT_INDICATE,
+         .permissions = 0},
+        {.type = BTGATT_DB_CHARACTERISTIC,
+         .uuid = sr_supp_feat_char_uuid,
+         .properties = GATT_CHAR_PROP_BIT_READ,
+         .permissions = GATT_PERM_READ},
+        {.type = BTGATT_DB_CHARACTERISTIC,
+         .uuid = cl_supp_feat_char_uuid,
+         .properties = (GATT_CHAR_PROP_BIT_READ | GATT_CHAR_PROP_BIT_WRITE),
+         .permissions = (GATT_PERM_READ | GATT_PERM_WRITE)},
+        {.uuid = database_hash_uuid,
+         .type = BTGATT_DB_CHARACTERISTIC,
+         .properties = GATT_CHAR_PROP_BIT_READ,
+         .permissions = GATT_PERM_READ,
+        }};
+
+    std::copy(std::begin(svc), std::end(svc), std::begin(service));
+    size_of_svc = 5;
+  }
+
+  GATTS_AddService(gatt_cb.gatt_if, service, size_of_svc);
 
   service_handle = service[0].attribute_handle;
   gatt_cb.handle_of_h_r = service[1].attribute_handle;
 
   gatt_attr_db[0].uuid = GATT_UUID_GATT_SR_SUPP_FEATURES;
-  gatt_attr_db[0].handle = service[2].attribute_handle;
+  gatt_attr_db[0].handle = service[base_index + 2].attribute_handle;
 
   VLOG(1) << __func__ << " eatt prop enabled:" << +gatt_cb.eatt_enabled;
   if (gatt_cb.eatt_enabled) {
@@ -651,11 +697,16 @@ void gatt_profile_db_init(void) {
 
   /* Client supported features characteristic */
   gatt_attr_db[1].uuid = GATT_UUID_GATT_CL_SUPP_FEATURES;
-  gatt_attr_db[1].handle = service[3].attribute_handle;
+  gatt_attr_db[1].handle = service[base_index + 3].attribute_handle;
 
   /* Database Hash characteristic */
   gatt_attr_db[2].uuid = GATT_UUID_DATABASE_HASH;
-  gatt_attr_db[2].handle = service[4].attribute_handle;
+  gatt_attr_db[2].handle = service[base_index + 4].attribute_handle;
+
+  if (stack_config_get_interface()->get_pts_configure_svc_chg_indication()) {
+    gatt_attr_db[3].uuid = GATT_UUID_CHAR_CLIENT_CONFIG;
+    gatt_attr_db[3].handle = service[2].attribute_handle;
+  }
 
   VLOG(1) << __func__ << ": gatt_if=" << +gatt_cb.gatt_if;
   if (gatt_sr_is_robust_caching_enabled())
@@ -1350,7 +1401,8 @@ static tGATT_STATUS gatt_sr_write_cl_supp_feat(uint16_t conn_id,
   // get current robust caching status before setting new one
   bool curr_caching_state = gatt_sr_is_cl_robust_caching_supported(tcb);
 
-  tcb.cl_supp_feat = tmp.front();
+  //Client supp feat char has valid values that can be set in bits 0,1,2
+  tcb.cl_supp_feat = (tmp.front() & 0x07);
   if (!gatt_sr_is_robust_caching_enabled()) {
     // remove robust caching bit
     tcb.cl_supp_feat &= ~BLE_GATT_CL_SUP_FEAT_CACHING_BITMASK;
@@ -1369,6 +1421,28 @@ static tGATT_STATUS gatt_sr_write_cl_supp_feat(uint16_t conn_id,
               << ", conn_id=" << loghex(conn_id);
   }
 
+  if (stack_config_get_interface()->get_pts_save_db_hash()) {
+    gatt_save_cl_db_hash(tcb);
+  }
+
+  return GATT_SUCCESS;
+}
+
+/* handle request for writing CCCD descriptor */
+static tGATT_STATUS gatt_sr_write_cccd(uint16_t conn_id,
+                                       tGATT_WRITE_REQ* p_data) {
+  uint8_t value = 0, *p = p_data->value;
+  // Get tcb info
+  uint8_t tcb_idx = GATT_GET_TCB_IDX(conn_id);
+  tGATT_TCB& tcb = gatt_cb.tcb[tcb_idx];
+
+  STREAM_TO_UINT8(value, p);
+  VLOG(1) << __func__ << " conn_id:" << conn_id
+          << " value:" << +value;
+
+  tcb.svc_chg_cccd = value;
+  btif_storage_set_svc_chg_cccd(tcb.peer_bda, value);
+
   return GATT_SUCCESS;
 }
 
@@ -1384,4 +1458,22 @@ static tGATT_STATUS gatt_sr_write_cl_supp_feat(uint16_t conn_id,
 uint16_t gatt_get_db_hash_char_handle() {
   VLOG(1) << __func__ << " DB hash handle:" << gatt_attr_db[2].handle;
   return gatt_attr_db[2].handle;
+}
+
+/*******************************************************************************
+ *
+ * Function         gatt_save_cl_db_hash
+ *
+ * Description      Save DB hash to btif storage
+ *
+ * Returns          none
+ *
+ ******************************************************************************/
+void gatt_save_cl_db_hash(tGATT_TCB tcb) {
+  VLOG(1) << __func__;
+
+  if (gatt_sr_is_cl_robust_caching_supported(tcb)) {
+    VLOG(1) << __func__ << " saving DB Hash";
+    btif_storage_set_gatt_cl_db_hash(tcb.peer_bda, gatt_cb.database_hash);
+  }
 }

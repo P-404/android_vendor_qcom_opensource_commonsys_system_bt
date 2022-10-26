@@ -142,6 +142,11 @@ static void reassemble_and_dispatch(BT_HDR* packet) {
     }
 
     if (boundary_flag == START_PACKET_BOUNDARY) {
+      if (acl_length < 2) {
+        LOG_WARN(LOG_TAG, "%s invalid acl_length %d", __func__, acl_length);
+        buffer_allocator->free(packet);
+        return;
+      }
       auto map_iter = partial_packets.find(handle);
       if (map_iter != partial_packets.end()) {
         LOG_WARN(LOG_TAG,

@@ -14,6 +14,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 #ifndef BT_TYPES_H
@@ -728,6 +732,7 @@ typedef struct {
  *
  * Address types
  */
+#define BLE_ADDR_DEFAULT -1
 #define BLE_ADDR_PUBLIC 0x00
 #define BLE_ADDR_RANDOM 0x01
 #define BLE_ADDR_PUBLIC_ID 0x02

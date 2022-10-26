@@ -902,8 +902,11 @@ static void btif_dm_cb_create_bond(const RawAddress& bd_addr,
   if (btm_cb.pairing_state != BTM_PAIR_STATE_IDLE ) {
     BTIF_TRACE_DEBUG("%s: btm_cb.pairing_state = %d, one pairing in progress ",
                       __func__, btm_cb.pairing_state);
-    auto tmp = bd_addr;
-    HAL_CBACK(bt_hal_cbacks, bond_state_changed_cb, BT_STATUS_FAIL, &tmp, BT_BOND_STATE_NONE, 0);
+    if (pairing_cb.bd_addr != bd_addr) {
+      auto tmp = bd_addr;
+      HAL_CBACK(bt_hal_cbacks, bond_state_changed_cb, BT_STATUS_FAIL, &tmp,
+                BT_BOND_STATE_NONE, 0);
+    }
     return;
   }
 
