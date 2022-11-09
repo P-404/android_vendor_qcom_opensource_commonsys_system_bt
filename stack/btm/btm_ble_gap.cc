@@ -58,6 +58,7 @@
 #include "device/include/device_iot_config.h"
 #include "bt_features.h"
 #include "btif/include/btif_config.h"
+#include "osi/include/properties.h"
 
 #define BTM_BLE_NAME_SHORT 0x01
 #define BTM_BLE_NAME_CMPL 0x02
@@ -2535,7 +2536,13 @@ bool parse_adv_audio_uuids_from_adv_pkt (const uint8_t* ad, size_t ad_len,
       const uint8_t *p_uuid16 = ad + position + 2;
       BTM_TRACE_DEBUG(" %s: position = %d, len = %d, p_uuid16 = %04x",
             __func__, position, len, (p_uuid16[0] | (p_uuid16[1] << 8)));
+
+      char tmap_cap_pts[PROPERTY_VALUE_MAX] = "false";
+      property_get("persist.vendor.service.bt.leaudio.pts", tmap_cap_pts, "false");
+      LOG_DEBUG(LOG_TAG, "%s: tmap_cap_pts: %s", __PRETTY_FUNCTION__, tmap_cap_pts);
+
       if (((p_uuid16[0] | (p_uuid16[1] << 8)) == UUID_SERVCLASS_ADV_AUDIO_CONN)
+          || (!strncmp("true", tmap_cap_pts, 4) && ((p_uuid16[0] | (p_uuid16[1] << 8)) == 0x1855))
           || ((p_uuid16[0] | (p_uuid16[1] << 8)) == UUID_SERVCLASS_ADV_AUDIO_CONN_LESS)) {
         return true;
       }

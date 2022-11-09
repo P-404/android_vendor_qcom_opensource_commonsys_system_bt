@@ -14,6 +14,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 /******************************************************************************
@@ -52,6 +56,10 @@
 extern void gatt_notify_phy_updated(uint8_t status, uint16_t handle,
                                     uint8_t tx_phy, uint8_t rx_phy);
 extern void btm_send_link_key_notif(tBTM_SEC_DEV_REC* p_dev_rec);
+
+#ifdef ADV_AUDIO_FEATURE
+extern bool is_remote_support_adv_audio(const RawAddress remote_bdaddr);
+#endif
 
 //HCI Command or Event callbacks
 tBTM_BLE_HCI_CMD_CB hci_cmd_cmpl;
@@ -2151,7 +2159,15 @@ uint8_t btm_proc_smp_cback(tSMP_EVT event, const RawAddress& bd_addr,
           }
 #else
           if (res != BTM_SUCCESS && p_data->cmplt.reason != SMP_CONN_TOUT) {
-            BTM_TRACE_DEBUG("Pairing failed - prepare to remove ACL");
+            BTM_TRACE_WARNING("Pairing failed - prepare to remove ACL");
+#ifdef ADV_AUDIO_FEATURE
+            if (is_remote_support_adv_audio(p_dev_rec->bd_addr)) {
+              int status = L2CA_SetFixedChannelTout(p_dev_rec->bd_addr, L2CAP_ATT_CID,
+                      L2CAP_BONDING_TIMEOUT * 1000);
+              BTM_TRACE_WARNING("%s Setting BONDING timeout for ATT CID status=0x%x",
+                  __func__, status);
+            }
+#endif
             l2cu_start_post_bond_timer(p_dev_rec->ble_hci_handle);
           }
 #endif

@@ -111,6 +111,7 @@ std::mutex active_profile_mtx;
 #define TMAP       0x08
 #define BAP_CALL   0x10
 #define GCP_RX     0x20
+#define GCP_TX     0x40
 
 btif_ahim_client_callbacks_t* pclient_cbs[MAX_CLIENT] = {NULL};
 
@@ -425,7 +426,7 @@ BTIF_TRACE_IMP("%s:", __func__);
 }
 
 LC3ChannelMode btif_lc3_channel_mode(uint8_t mode) {
-BTIF_TRACE_IMP("%s:", __func__);
+BTIF_TRACE_IMP("%s: mode: %d", __func__, mode);
   switch (mode) {
     case BTAV_A2DP_CODEC_CHANNEL_MODE_MONO:
       return LC3ChannelMode::MONO;
@@ -484,6 +485,8 @@ LeAudioConfiguration fetch_offload_audio_config(int profile, int direction) {
   uint8_t cis_count = 2;
   LC3ChannelMode ch_mode = btif_lc3_channel_mode(
       pclient_cbs[profile - 1]->get_channel_mode_cb(direction));
+
+  BTIF_TRACE_IMP("%s: ch_mode: %d", __func__, static_cast<uint16_t>(ch_mode));
 
   if( ch_mode == LC3ChannelMode::JOINT_STEREO ||
       ch_mode == LC3ChannelMode::MONO) {

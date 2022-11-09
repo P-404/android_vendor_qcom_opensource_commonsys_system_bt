@@ -69,8 +69,8 @@
 
 #define BTSNOOP_LOG_MODE_PROPERTY "persist.bluetooth.btsnooplogmode"
 #define BTSNOOP_DEFAULT_MODE_PROPERTY "persist.bluetooth.btsnoopdefaultmode"
-#define BTSNOOP_LOG_FILTER_PROFILES_PROPERTY    "persist.bluetooth.snoopfilter.profiles"
-#define BTSNOOP_LOG_PROFILE_FILTERMODE_PROPERTY "persist.bluetooth.snoopfilter.mode"
+#define BTSNOOP_LOG_FILTER_PROFILES_PROPERTY    "persist.vendor.service.bt.adv_snoop.profiles"
+#define BTSNOOP_LOG_PROFILE_FILTERMODE_PROPERTY "persist.vendor.service.bt.adv_snoop.mode"
 #define BTSNOOP_MODE_DISABLED "disabled"
 #define BTSNOOP_MODE_FILTERED "filtered"
 #define BTSNOOP_MODE_FULL "full"
@@ -422,7 +422,13 @@ static future_t* start_up() {
     is_btsnoop_enabled = false;
     is_btsnoop_filtered = false;
     vendor_logging_level = HCI_SNOOP_ONLY_HEADER | DYNAMIC_LOGCAT_CAPTURE;
- } else if (btsnoop_mode == BTSNOOP_MODE_FILTERED) {
+ } else if (btsnoop_mode_adv == BTSNOOP_MODE_PROFILESFILTERED) {
+    LOG(INFO) << __func__ << ": Profile filtered Logs enabled";
+    is_vndbtsnoop_enabled = true;
+    vendor_logging_level = HCI_SNOOP_LOG_PROFILEFILTER | DYNAMIC_LOGCAT_CAPTURE;
+    is_btsnoop_enabled = false;
+    is_btsnoop_filtered = false;
+  } else if (btsnoop_mode == BTSNOOP_MODE_FILTERED) {
     LOG(INFO) << __func__ << ": Filtered Snoop Logs enabled";
     is_btsnoop_enabled = true;
     is_btsnoop_filtered = true;
@@ -434,16 +440,6 @@ static future_t* start_up() {
     is_btsnoop_filtered = false;
     vendor_logging_level = HCI_SNOOP_LOG_FULL | DYNAMIC_LOGCAT_CAPTURE;
     delete_btsnoop_files(true);
-  } else if (btsnoop_mode == BTSNOOP_MODE_PROFILESFILTERED) {
-    if (is_debuggable) {
-      LOG(INFO) << __func__ << ": Profiles filter works only for user build";
-    } else {
-      LOG(INFO) << __func__ << ": Profile filtered Logs enabled";
-      is_vndbtsnoop_enabled = true;
-      vendor_logging_level = HCI_SNOOP_LOG_PROFILEFILTER | DYNAMIC_LOGCAT_CAPTURE;
-    }
-    is_btsnoop_enabled = false;
-    is_btsnoop_filtered = false;
   } else {
     LOG(INFO) << __func__ << ": Snoop Logs disabled";
     is_btsnoop_enabled = false;
@@ -453,7 +449,7 @@ static future_t* start_up() {
     delete_btsnoop_files(false);
   }
 
-  if (btsnoop_mode == BTSNOOP_MODE_PROFILESFILTERED && !is_debuggable) {
+  if (btsnoop_mode_adv == BTSNOOP_MODE_PROFILESFILTERED) {
     len = osi_property_get(BTSNOOP_LOG_PROFILE_FILTERMODE_PROPERTY,
                            property.data(), "fullfilter");
     std::string filter_mode(property.data(), len);
@@ -466,7 +462,8 @@ static future_t* start_up() {
     }
     LOG(INFO) << __func__ << ": profile filter mode " << profile_filter_mode;
     len = osi_property_get(BTSNOOP_LOG_FILTER_PROFILES_PROPERTY,
-                           property.data(), "");
+                           property.data(), "pbap,map");
+    pbap_filtered = map_filtered = false;
 
     char *token, *saved_token;
     token = strtok_r((char *)property.data(), ",", &saved_token);
@@ -480,7 +477,7 @@ static future_t* start_up() {
       }
       token = strtok_r(NULL, ",", &saved_token);
     }
-    LOG(INFO) << __func__ << "pbap_filtered=" << pbap_filtered
+    LOG(INFO) << __func__ << " pbap_filtered=" << pbap_filtered
               << " map_filtered=" << map_filtered;
   }
 

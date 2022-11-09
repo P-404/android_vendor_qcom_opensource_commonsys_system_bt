@@ -99,6 +99,7 @@ static const uint32_t COMMAND_TIMEOUT_RESTART_MS = 5000;
 static bool interface_created;
 static hci_t interface;
 
+static bool enable_hcievent_debuglog = false;
 // Modules we import and callbacks we export
 static const allocator_t* buffer_allocator;
 static const btsnoop_t* btsnoop;
@@ -179,18 +180,31 @@ void initialization_complete() {
 void hci_event_received(const base::Location& from_here,
                         BT_HDR* packet) {
 
+  if (enable_hcievent_debuglog == true) {
+    LOG_DEBUG(LOG_TAG,"hci event start");
+  }
   inc_rx_packet_counter();
   btsnoop->capture(packet, true);
 
   if (!filter_incoming_event(packet)) {
     send_data_upwards.Run(from_here, packet);
   }
+  if (enable_hcievent_debuglog == true) {
+    LOG_DEBUG(LOG_TAG,"hci event end");
+  }
 }
 
 void acl_event_received(BT_HDR* packet) {
+
+  if (enable_hcievent_debuglog == true) {
+     LOG_DEBUG(LOG_TAG,"acl event start");
+  }
   inc_rx_packet_counter();
   btsnoop->capture(packet, true);
   packet_fragmenter->reassemble_and_dispatch(packet);
+  if (enable_hcievent_debuglog == true) {
+     LOG_DEBUG(LOG_TAG,"acl event end");
+  }
 }
 
 void sco_data_received(BT_HDR* packet) {
@@ -234,6 +248,12 @@ static future_t* hci_module_start_up(void) {
   // For now, always use the default timeout on non-Android builds.
   period_ms_t startup_timeout_ms = DEFAULT_STARTUP_TIMEOUT_MS;
 
+  char hcievent_logmode[PROPERTY_VALUE_MAX] = "false";
+  osi_property_get("persist.vendor.bluetooth.hcieventlog",
+            hcievent_logmode, "false");
+  if (!strcmp(hcievent_logmode, "true")) {
+    enable_hcievent_debuglog = true;
+  }
   char prop_value[PROPERTY_VALUE_MAX];
   // Check if XMEM enabled, if yes override startup timeout
   if (osi_property_get("persist.vendor.bluetooth.enable_XMEM", prop_value,"0") &&
