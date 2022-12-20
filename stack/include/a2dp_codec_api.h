@@ -692,6 +692,7 @@ bool A2DP_IsCodecEnabledInSoftware(btav_a2dp_codec_index_t codec_index);
 bool A2DP_Get_AAC_VBR_Status(const RawAddress *remote_bdaddr);
 bool A2DP_Get_Aptx_AdaptiveR2_1_Supported();
 bool A2DP_Get_Aptx_AdaptiveR2_2_Supported();
+bool A2DP_Get_Source_Aptx_Adaptive_SplitTx_Supported();
 
 bool A2DP_IsCodecEnabledInOffload(btav_a2dp_codec_index_t codec_index);
 // Decodes and displays A2DP codec info when using |LOG_DEBUG|.

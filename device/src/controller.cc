@@ -94,6 +94,9 @@ const uint8_t SCO_HOST_BUFFER_SIZE = 0xff;
 #define MAX_SUPPORTED_SCRAMBLING_FREQ_SIZE 8
 #define MAX_SCRAMBLING_FREQS_SIZE 64
 #define ISO_CHANNEL_HOST_SUPPORT_BIT 32
+#ifdef VLOC_FEATURE
+#define VLOC_HOST_SUPPORT_BIT 58
+#endif
 #define MIN_ENCRYPTION_KEY_SIZE 7
 #define CONN_SUBRATING_HOST_SUPPORT_BIT 38
 #define UNUSED(x) (void)(x)
@@ -140,6 +143,9 @@ static uint8_t ble_supported_states[BLE_SUPPORTED_STATES_SIZE];
 static bt_device_features_t features_ble;
 static uint16_t ble_suggested_default_data_length;
 static uint16_t ble_maxium_advertising_data_length;
+#ifdef VLOC_FEATURE
+static bt_device_vloc_local_features_t ble_device_vloc_local_features;
+#endif
 static uint8_t ble_number_of_supported_advertising_sets;
 static uint8_t local_supported_codecs[MAX_LOCAL_SUPPORTED_CODECS_SIZE];
 static uint8_t std_codec_tx[MAX_LOCAL_SUPPORTED_CODECS_SIZE];
@@ -596,6 +602,23 @@ static future_t* start_up(void) {
         AWAIT_COMMAND(packet_factory->make_set_event_mask(&CLASSIC_EVENT_MASK));
     packet_parser->parse_generic_command_complete(response);
   }
+
+#ifdef VLOC_FEATURE
+  if (HCI_LE_VLOC_SUPPORTED(features_ble.as_array)) {
+    char vloc_host[PROPERTY_VALUE_MAX] = "false";
+    property_get("persist.vendor.service.bt.cs", vloc_host, "false");
+    if (!strncmp("true", vloc_host, 4)) {
+      response = AWAIT_COMMAND(
+          packet_factory->make_ble_set_host_feature_cmd(VLOC_HOST_SUPPORT_BIT, 1));
+      packet_parser->parse_ble_set_host_feature_cmd(response);
+      LOG_DEBUG(LOG_TAG, "%s CS bit is set", __func__);
+      response =
+        AWAIT_COMMAND(packet_factory->make_ble_vloc_read_local_supported_capabilities());
+      LOG_DEBUG(LOG_TAG, "%s need to parse the cs local supp capa", __func__);
+      packet_parser->parse_ble_vloc_read_local_supported_capabilities(response, &ble_device_vloc_local_features);
+    }
+  }
+#endif
 
   // read local supported codecs
   if (HCI_READ_LOCAL_CODECS_SUPPORTED_V2(supported_commands)) {

@@ -169,7 +169,11 @@ static BT_HDR* make_ble_read_suggested_default_data_length(void) {
 static BT_HDR* make_ble_read_maximum_advertising_data_length(void) {
   return make_command_no_params(HCI_LE_READ_MAXIMUM_ADVERTISING_DATA_LENGTH);
 }
-
+#ifdef VLOC_FEATURE
+static BT_HDR* make_ble_vloc_read_local_supported_capabilities(void) {
+  return make_command_no_params(HCI_LE_VLOC_READ_LOCAL_SUPORTED_CAPABILITIES);
+}
+#endif
 static BT_HDR* make_ble_read_number_of_supported_advertising_sets(void) {
   return make_command_no_params(
       HCI_LE_READ_NUMBER_OF_SUPPORTED_ADVERTISING_SETS);
@@ -338,6 +342,9 @@ static const hci_packet_factory_t interface = {
     make_ble_write_rf_path_compensation,
     make_set_min_encryption_key_size,
     make_qbce_read_qll_local_supported_features,
+#ifdef VLOC_FEATURE
+    make_ble_vloc_read_local_supported_capabilities,
+#endif
 };
 
 const hci_packet_factory_t* hci_packet_factory_get_interface() {

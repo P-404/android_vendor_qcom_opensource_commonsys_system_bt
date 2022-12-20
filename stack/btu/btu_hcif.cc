@@ -474,6 +474,11 @@ void btu_hcif_process_event(UNUSED_ATTR uint8_t controller_id, BT_HDR* p_msg) {
         case HCI_LE_SUBRATE_CHANGE_EVT:
           btu_ble_subrate_change_evt(p, hci_evt_len);
           break;
+#ifdef VLOC_FEATURE
+        default:
+          LOG_DEBUG(LOG_TAG, "%s process vendor HCI events.", __func__);
+          btu_vendor_hcif_process_event(controller_id, p_msg);
+#endif
       }
       break;
     }
@@ -1442,6 +1447,10 @@ static void btu_hcif_hdl_command_status(uint16_t opcode, uint8_t status,
             if ((opcode & HCI_GRP_VENDOR_SPECIFIC) == HCI_GRP_VENDOR_SPECIFIC)
               btm_vsc_complete(&status, opcode, 1,
                                (tBTM_VSC_CMPL_CB*)p_vsc_status_cback);
+#ifdef VLOC_FEATURE
+            btu_vendor_hcif_hdl_command_status(opcode, status,
+                                        p_cmd);
+#endif
             break;
         }
 
@@ -1449,6 +1458,10 @@ static void btu_hcif_hdl_command_status(uint16_t opcode, uint8_t status,
         if ((opcode & HCI_GRP_VENDOR_SPECIFIC) == HCI_GRP_VENDOR_SPECIFIC)
           btm_vsc_complete(&status, opcode, 1,
                            (tBTM_VSC_CMPL_CB*)p_vsc_status_cback);
+#ifdef VLOC_FEATURE
+          btu_vendor_hcif_hdl_command_status(opcode, status,
+                                        p_cmd);
+#endif
       }
   }
 }

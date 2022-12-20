@@ -58,6 +58,9 @@ typedef struct {
   BT_HDR* (*make_ble_write_rf_path_compensation)(uint16_t tx_value, uint16_t rx_value);
   BT_HDR* (*make_set_min_encryption_key_size)(uint8_t size);
   BT_HDR* (*make_qbce_read_qll_local_supported_features)(void);
+#ifdef VLOC_FEATURE
+  BT_HDR* (*make_ble_vloc_read_local_supported_capabilities)(void);
+#endif
 } hci_packet_factory_t;
 
 const hci_packet_factory_t* hci_packet_factory_get_interface();

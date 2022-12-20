@@ -310,6 +310,22 @@ static void parse_ble_read_maximum_advertising_data_length(
   buffer_allocator->free(response);
 }
 
+#ifdef VLOC_FEATURE
+static void parse_ble_vloc_read_local_supported_capabilities(
+    BT_HDR* response, bt_device_vloc_local_features_t* local_vloc_supported_features) {
+  uint8_t* stream = read_command_complete_header(
+      response, HCI_LE_VLOC_READ_LOCAL_SUPORTED_CAPABILITIES,
+      VLOC_LOCAL_FEATURES_MAX_SIZE /* bytes after */);
+  assert(stream != NULL);
+  STREAM_TO_ARRAY(local_vloc_supported_features->as_array, stream,
+                  VLOC_LOCAL_FEATURES_MAX_SIZE);
+  for (int i=0; i<VLOC_LOCAL_FEATURES_MAX_SIZE; i++) {
+      LOG_INFO(LOG_TAG, "%s: VLOC_FEAT[%d]: %x", __func__, i, local_vloc_supported_features->as_array[i]);
+  }
+  buffer_allocator->free(response);
+}
+#endif
+
 static void parse_ble_set_host_feature_cmd(BT_HDR* response) {
   read_command_complete_header(
       response, HCI_BLE_SET_HOST_FEATURE, 0 /* bytes after */);
@@ -417,6 +433,9 @@ static const hci_packet_parser_t interface = {
     parse_ble_set_host_feature_cmd,
     parse_set_min_encryption_key_size_response,
     parse_qll_read_local_supported_features_response,
+#ifdef VLOC_FEATURE
+    parse_ble_vloc_read_local_supported_capabilities,
+#endif
 };
 
 const hci_packet_parser_t* hci_packet_parser_get_interface() {

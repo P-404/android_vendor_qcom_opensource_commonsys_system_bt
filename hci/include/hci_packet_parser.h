@@ -106,7 +106,10 @@ typedef struct {
   void (*parse_set_min_encryption_key_size_response)(BT_HDR* response);
   void (*parse_qll_read_local_supported_features_response)(BT_HDR* response,
                  bt_device_qll_local_supported_features_t* supported_features);
-
+#ifdef VLOC_FEATURE
+  void (*parse_ble_vloc_read_local_supported_capabilities)(
+    BT_HDR* response, bt_device_vloc_local_features_t* local_vloc_supported_features);
+#endif
 } hci_packet_parser_t;
 
 const hci_packet_parser_t* hci_packet_parser_get_interface();

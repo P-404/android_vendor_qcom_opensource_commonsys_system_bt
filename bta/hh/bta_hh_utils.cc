@@ -133,7 +133,7 @@ void bta_hh_clean_up_kdev(tBTA_HH_DEV_CB* p_cb) {
     if (p_cb->is_le_device)
       bta_hh_cb.le_cb_index[BTA_HH_GET_LE_CB_IDX(p_cb->hid_handle)] =
           BTA_HH_IDX_INVALID;
-    else
+    else if (p_cb->hid_handle < BTA_HH_MAX_KNOWN)
 #endif
       bta_hh_cb.cb_index[p_cb->hid_handle] = BTA_HH_IDX_INVALID;
   }

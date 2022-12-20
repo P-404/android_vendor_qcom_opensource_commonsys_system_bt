@@ -778,6 +778,13 @@ A2dpCodecConfigAptxAdaptive::A2dpCodecConfigAptxAdaptive(
     } else if (A2DP_Get_Aptx_AdaptiveR2_1_Supported()) {
       a2dp_aptx_adaptive_caps = a2dp_aptx_adaptive_r2_1_offload_caps;
       a2dp_aptx_adaptive_default_config = a2dp_aptx_adaptive_r2_1_default_offload_config;
+      if (A2DP_Get_Source_Aptx_Adaptive_SplitTx_Supported()) {
+        LOG_INFO(LOG_TAG, "%s: Conditional enable split Tx in R2.1 configs", __func__);
+        a2dp_aptx_adaptive_caps.aptx_data.aptx_adaptive_sup_features |=
+            A2DP_APTX_ADAPTIVE_SOURCE_SPILT_TX_SUPPORTED;
+        a2dp_aptx_adaptive_default_config.aptx_data.aptx_adaptive_sup_features |=
+            A2DP_APTX_ADAPTIVE_SOURCE_SPILT_TX_SUPPORTED;
+      }
     } else {
       if (getOffloadCaps().find("aptxadaptiver2") == std::string::npos) {
         LOG_INFO(LOG_TAG, "%s: Using Aptx Adaptive R1 config", __func__);
@@ -1063,8 +1070,6 @@ bool A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_codec_inf
   uint8_t channelMode;
 
   uint8_t sink_byte_17th = 0x00, src_byte_17th = 0x00, byte_negotiated_17th = 0x00;
-  bool is_negotiated_r1 = false;
-
   // Save the internal state
   btav_a2dp_codec_config_t saved_codec_config = codec_config_;
   btav_a2dp_codec_config_t saved_codec_capability = codec_capability_;
@@ -1100,7 +1105,6 @@ bool A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_codec_inf
 
   if ((getOffloadCaps().find("aptxadaptiver2") == std::string::npos)
       || (sink_info_cie.aptx_data.cap_ext_ver_num == 0)) {
-    is_negotiated_r1 = true;
     result_config_cie.aptx_data = a2dp_aptx_adaptive_r1_offload_caps.aptx_data;
     if (sink_info_cie.aptx_data.cap_ext_ver_num == 0) {
       LOG_INFO(LOG_TAG, "%s: Sink supports R1.0 decoder ", __func__);
@@ -1109,10 +1113,12 @@ bool A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_codec_inf
     LOG_INFO(LOG_TAG, "%s: Select Aptx Adaptive R1 config", __func__);
   } else {
     sink_byte_17th = (sink_info_cie.aptx_data.aptx_adaptive_sup_features & 0xFF);
+    src_byte_17th = (a2dp_aptx_adaptive_caps.aptx_data.aptx_adaptive_sup_features & 0xFF);
+    byte_negotiated_17th = (((sink_byte_17th >> 4) | (src_byte_17th >> 4)) << 4) |
+                           ((sink_byte_17th & src_byte_17th) & 0x0F);
+    LOG_INFO(LOG_TAG, "sink byte: 0x%x, src byte: 0x%x, byte negotiated: 0x%x",
+                       sink_byte_17th, src_byte_17th, byte_negotiated_17th);
     if (A2DP_Get_Aptx_AdaptiveR2_2_Supported()) {
-      src_byte_17th = A2DP_APTX_ADAPTIVE_R2_2_SRC_17TH_BYTE;
-      byte_negotiated_17th = (((sink_byte_17th >> 4) | (src_byte_17th >> 4)) << 4) |
-                             ((sink_byte_17th & src_byte_17th) & 0x0F);
       LOG_INFO(LOG_TAG, "%s: Select Aptx Adaptive R2.2 config", __func__);
       result_config_cie.aptx_data = a2dp_aptx_adaptive_r2_2_offload_caps.aptx_data;
       if((sink_info_cie.aptx_data.aptx_adaptive_sup_features &APTX_ADAPTIVE_SINK_R2_2_SUPPORT_CAP)
@@ -1136,28 +1142,17 @@ bool A2dpCodecConfigAptxAdaptive::setCodecConfig(const uint8_t* p_peer_codec_inf
         codec_config_.codec_specific_3 |= (int64_t) APTX_ADAPTIVE_R2_2_SUPPORT_NOT_AVAILABLE;
       }
     } else if (A2DP_Get_Aptx_AdaptiveR2_1_Supported()) {
-      src_byte_17th = A2DP_APTX_ADAPTIVE_R2_1_SRC_17TH_BYTE;
-      byte_negotiated_17th = (((sink_byte_17th >> 4) | (src_byte_17th >> 4)) << 4) |
-                             ((sink_byte_17th & src_byte_17th) & 0x0F);
       LOG_INFO(LOG_TAG, "%s: Select Aptx Adaptive R2.1 config", __func__);
       result_config_cie.aptx_data = a2dp_aptx_adaptive_r2_1_offload_caps.aptx_data;
       result_config_cie.aptx_data.aptx_adaptive_sup_features =
           (sink_info_cie.aptx_data.aptx_adaptive_sup_features & 0xFFFFFF00) | byte_negotiated_17th;
     } else {
-      src_byte_17th = A2DP_APTX_ADAPTIVE_R2_0_SRC_17TH_BYTE;
-      byte_negotiated_17th = (((sink_byte_17th >> 4) | (src_byte_17th >> 4)) << 4) |
-                             ((sink_byte_17th & src_byte_17th) & 0x0F);
       LOG_INFO(LOG_TAG, "%s: Select Aptx Adaptive R2 config", __func__);
       result_config_cie.aptx_data = a2dp_aptx_adaptive_offload_caps.aptx_data;
       result_config_cie.aptx_data.aptx_adaptive_sup_features =
           (sink_info_cie.aptx_data.aptx_adaptive_sup_features & 0xFFFFFF00) | byte_negotiated_17th;
     }
-  }
-
-  if (is_negotiated_r1 == false) {
-    LOG_INFO(LOG_TAG, "sink byte: 0x%x, src byte: 0x%x, byte negotiated: 0x%x, cap supported: 0x%x",
-      sink_byte_17th, src_byte_17th, byte_negotiated_17th,
-      result_config_cie.aptx_data.aptx_adaptive_sup_features);
+    LOG_INFO(LOG_TAG,"res cfg subfeat 0x%x",result_config_cie.aptx_data.aptx_adaptive_sup_features);
   }
 
   // Select the sample frequency

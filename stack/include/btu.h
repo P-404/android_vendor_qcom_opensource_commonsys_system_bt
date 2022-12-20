@@ -41,6 +41,12 @@ extern uint8_t btu_trace_level;
  ***********************************
 */
 void btu_hcif_process_event(uint8_t controller_id, BT_HDR* p_buf);
+#ifdef VLOC_FEATURE
+void btu_vendor_hcif_process_event(uint8_t controller_id, BT_HDR* p_buf);
+void btu_vendor_hcif_hdl_command_status(uint16_t opcode, uint8_t status,
+                                        uint8_t* p_cmd);
+#endif
+
 void btu_hcif_send_cmd(uint8_t controller_id, BT_HDR* p_msg);
 void btu_hcif_send_cmd_with_cb(const base::Location& posted_from,
                                uint16_t opcode, uint8_t* params,
