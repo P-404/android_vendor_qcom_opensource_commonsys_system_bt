@@ -56,6 +56,9 @@
 #if (SWB_ENABLED == TRUE)
 #include "bta_ag_swb.h"
 #endif
+#ifdef ADV_AUDIO_FEATURE
+#include "bta_dm_adv_audio.h"
+#endif
 
 /*******************************************************************************
  *  Constants & Macros
@@ -123,6 +126,9 @@ const char* dump_dm_search_event(uint16_t event) {
     CASE_RETURN_STR(BTA_DM_DISC_CMPL_EVT)
     CASE_RETURN_STR(BTA_DM_DI_DISC_CMPL_EVT)
     CASE_RETURN_STR(BTA_DM_SEARCH_CANCEL_CMPL_EVT)
+#ifdef ADV_AUDIO_FEATURE
+    CASE_RETURN_STR(BTA_DM_LE_AUDIO_SEARCH_CMPL_EVT)
+#endif
 
     default:
       return "UNKNOWN MSG ID";

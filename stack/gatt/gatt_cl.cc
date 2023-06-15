@@ -588,7 +588,8 @@ void gatt_process_error_rsp(tGATT_TCB& tcb, tGATT_CLCB* p_clcb,
       gatt_end_operation(p_clcb, GATT_SUCCESS, (void*)p_clcb->p_attr_buf);
     } else if ((p_clcb->operation == GATTC_OPTYPE_READ) &&
               (p_clcb->op_subtype == GATT_READ_MULTIPLE)) {
-      gatt_end_operation(p_clcb, GATT_NOT_FOUND, (void*)p_clcb->p_attr_buf);
+      p_clcb->status = reason;
+      gatt_end_operation(p_clcb, reason, (void*)p_clcb->p_attr_buf);
     } else
       gatt_end_operation(p_clcb, reason, NULL);
   }

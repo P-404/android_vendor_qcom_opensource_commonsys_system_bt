@@ -643,6 +643,7 @@ extern void gatt_delete_dev_from_srv_chg_clt_list(const RawAddress& bd_addr);
 extern void gatt_add_pending_ind(tGATT_TCB* p_tcb, uint16_t lcid, tGATT_VALUE* p_ind);
 extern void gatt_free_srvc_db_buffer_app_id(const bluetooth::Uuid& app_id);
 extern bool gatt_cl_send_next_cmd_inq(tGATT_TCB& tcb, uint16_t lcid);
+extern uint8_t gatt_num_app_hold_links(const RawAddress& bda, tBT_TRANSPORT transport);
 
 /* reserved handle list */
 extern std::list<tGATT_HDL_LIST_ELEM>::iterator gatt_find_hdl_buffer_by_app_id(

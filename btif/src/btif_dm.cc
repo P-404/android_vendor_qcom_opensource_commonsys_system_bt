@@ -1788,6 +1788,12 @@ static void btif_dm_search_devices_evt(uint16_t event, char* p_param) {
                   BT_DISCOVERY_STOPPED);
       }
     } break;
+#ifdef ADV_AUDIO_FEATURE
+    case BTA_DM_LE_AUDIO_SEARCH_CMPL_EVT: {
+      btif_dm_lea_search_services_evt(event, p_param);
+      break;
+    }
+#endif
   }
 }
 

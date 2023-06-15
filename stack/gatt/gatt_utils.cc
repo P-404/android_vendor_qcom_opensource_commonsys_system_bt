@@ -1526,7 +1526,7 @@ void gatt_end_operation(tGATT_CLCB* p_clcb, tGATT_STATUS status, void* p_data) {
       //Add for read multi rsp
       if ((p_clcb->op_subtype == GATT_READ_MULTIPLE ||
           p_clcb->op_subtype == GATT_READ_MULTIPLE_VARIABLE)) {
-        if (status == GATT_NOT_FOUND) {
+        if ((status == GATT_NOT_FOUND) || (status == GATT_REQ_NOT_SUPPORTED)) {
           cb_data.att_value.handle = p_clcb->err_handle;
         }
         cb_data.att_value.read_sub_type = p_clcb->op_subtype;
@@ -1696,3 +1696,24 @@ bool gatt_is_robust_caching_enabled() {
   VLOG(1) << __func__ << " is_gatt_robust_caching_enabled:" << +is_gatt_robust_caching_enabled;
   return is_gatt_robust_caching_enabled;
 }
+
+/*******************************************************************************
+ *
+ * Function         gatt_num_app_hold_links
+ *
+ * Description      calculates number of app links registered for the given remote bd addr
+ *
+ * Returns          number of app hold links for the given bdaddr
+ *
+ ******************************************************************************/
+uint8_t gatt_num_app_hold_links(const RawAddress& bda, tBT_TRANSPORT transport) {
+  uint8_t num_links = 0;
+
+  tGATT_TCB* p_tcb = gatt_find_tcb_by_addr(bda, transport);
+  if (p_tcb != NULL) {
+    num_links = p_tcb->app_hold_link.size();
+  }
+  LOG(WARNING) << __func__ << " num_links =" << + num_links;
+  return num_links;
+}
+

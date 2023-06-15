@@ -550,6 +550,7 @@ static void l2c_csm_orig_w4_sec_comp(tL2C_CCB* p_ccb, uint16_t event,
         L2CAP_TRACE_API(
             "L2CAP - Calling Disconnect_Ind_Cb(), CID: 0x%04x  No Conf Needed",
             p_ccb->local_cid);
+        l2cu_release_ccb(p_ccb);
         if (disconnect_ind) {
           (*disconnect_ind)(local_cid, false);
         }
