@@ -1945,7 +1945,7 @@ static void l2c_csm_open(tL2C_CCB* p_ccb, uint16_t event, void* p_data) {
 
     case L2CEVT_L2CA_DISCONNECT_REQ: /* Upper wants to disconnect */
       if (p_ccb->p_lcb->transport == BT_TRANSPORT_BR_EDR &&
-        p_ccb->p_rcb->psm != BT_PSM_SDP &&
+        (p_ccb->p_rcb && p_ccb->p_rcb->psm != BT_PSM_SDP) &&
         interop_match_addr_or_name(INTEROP_L2CAP_DISCONNECT_ACL_DIRECTLY,
         &p_ccb->p_lcb->remote_bd_addr)) {
         L2CAP_TRACE_ERROR("disconnect acl directly.");

@@ -5794,6 +5794,7 @@ static void bta_dm_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
 #ifdef ADV_AUDIO_FEATURE
         if (p_data->search_cmpl.status == 0) {
           if (is_remote_support_adv_audio(bta_dm_search_cb.peer_bdaddr)) {
+            bta_dm_reset_adv_audio_gatt_disc_prog(bta_dm_search_cb.peer_bdaddr);
             bta_get_adv_audio_role(bta_dm_search_cb.peer_bdaddr,
                 p_data->search_cmpl.conn_id,
                 p_data->search_cmpl.status);
@@ -5806,6 +5807,7 @@ static void bta_dm_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
         } else {
           APPL_TRACE_DEBUG("%s Discovery Failure ", __func__);
           if (is_remote_support_adv_audio(bta_dm_search_cb.peer_bdaddr))
+            bta_dm_reset_adv_audio_gatt_disc_prog(bta_dm_search_cb.peer_bdaddr);
             bta_le_audio_service_search_failed(&bta_dm_search_cb.peer_bdaddr);
         }
 #endif
@@ -5821,7 +5823,11 @@ static void bta_dm_gattc_callback(tBTA_GATTC_EVT event, tBTA_GATTC* p_data) {
           bta_dm_search_cb.conn_id = GATT_INVALID_CONN_ID;
 #ifdef ADV_AUDIO_FEATURE
       if (is_remote_support_adv_audio(p_data->close.remote_bda)) {
-        bta_dm_reset_adv_audio_dev_info(p_data->close.remote_bda);
+        if (is_gatt_srvc_disc_pending(p_data->close.remote_bda)) {
+          bta_le_audio_service_search_failed(&p_data->close.remote_bda);
+        } else {
+          bta_dm_reset_adv_audio_dev_info(p_data->close.remote_bda);
+        }
       }
 #endif
       /* in case of disconnect before search is completed */

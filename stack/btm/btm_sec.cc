@@ -4851,6 +4851,8 @@ void btm_sec_disconnected(uint16_t handle, uint8_t reason) {
                                 HCI_SUCCESS);
   /* see sec_flags processing in btm_acl_removed */
 
+  BTM_TRACE_EVENT("%s: Transport used %d.", __func__, transport);
+
   if (transport == BT_TRANSPORT_LE) {
     p_dev_rec->ble_hci_handle = BTM_SEC_INVALID_HANDLE;
     p_dev_rec->sec_flags &= ~(BTM_SEC_LE_AUTHENTICATED | BTM_SEC_LE_ENCRYPTED);
@@ -4859,7 +4861,8 @@ void btm_sec_disconnected(uint16_t handle, uint8_t reason) {
     p_dev_rec->hci_handle = BTM_SEC_INVALID_HANDLE;
     p_dev_rec->sec_flags &=
         ~(BTM_SEC_AUTHORIZED | BTM_SEC_AUTHENTICATED | BTM_SEC_ENCRYPTED |
-          BTM_SEC_ROLE_SWITCHED | BTM_SEC_16_DIGIT_PIN_AUTHED);
+          BTM_SEC_ROLE_SWITCHED | BTM_SEC_16_DIGIT_PIN_AUTHED |
+          BTM_SEC_PAIRING_IN_PROGRESS);
 
     // Remove temporary key.
     if (p_dev_rec->bond_type == BOND_TYPE_TEMPORARY)

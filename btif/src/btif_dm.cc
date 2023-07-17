@@ -283,6 +283,10 @@ static bool btif_dm_inquiry_in_progress = false;
 
 bool twsplus_enabled = false;
 
+/* This flag will be true if SDP is interrupted by ACL down*/
+static bool btif_dm_SDP_interrupt = false;
+RawAddress btif_dm_SDP_interrupt_bd_addr = {};
+tBTA_TRANSPORT btif_dm_SDP_interrupt_transport = BTA_TRANSPORT_UNKNOWN;
 
 /*******************************************************************************
  *  Static variables
@@ -1469,6 +1473,13 @@ static void btif_dm_auth_cmpl_evt(tBTA_DM_AUTH_CMPL* p_auth_cmpl) {
     // Do not call bond_state_changed_cb yet. Wait until remote service
     // discovery is complete
   } else {
+#ifdef ADV_AUDIO_FEATURE
+    if ((pairing_cb.bd_addr == bd_addr) &&
+        (is_remote_support_adv_audio(bd_addr))) {
+        bta_dm_reset_adv_audio_pairing_info(bd_addr);
+    }
+#endif
+
     // Map the HCI fail reason  to  bt status
     switch (p_auth_cmpl->fail_reason) {
       case HCI_ERR_PAGE_TIMEOUT:
@@ -2249,6 +2260,23 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
         num_active_br_edr_links++;
         BTIF_TRACE_DEBUG("num_active_br_edr_links is %d ", num_active_br_edr_links);
       }
+
+      if (!is_bonding_or_sdp() && btif_dm_SDP_interrupt && btif_dm_SDP_interrupt_bd_addr == bd_addr &&
+                       btif_dm_SDP_interrupt_transport == p_data->link_up.link_type) {
+      /* Trigger SDP*/
+        BTIF_TRACE_DEBUG("SDP for %s was interrupted previously, continue SDP", bd_addr.ToString().c_str());
+        btif_dm_cancel_discovery();
+
+        pairing_cb.bd_addr = bd_addr;
+        pairing_cb.state = BT_BOND_STATE_BONDED;
+        pairing_cb.sdp_attempts = 1;
+        btif_dm_get_remote_services_by_transport(&bd_addr, btif_dm_SDP_interrupt_transport);
+
+        btif_dm_SDP_interrupt = false;
+        btif_dm_SDP_interrupt_bd_addr = {};
+        btif_dm_SDP_interrupt_transport = BTA_TRANSPORT_UNKNOWN;
+      }
+
       /* When tuchtones are enabled and 2 EDR HS are connected, if new
        * connection is initated, then tuch tones are send to both connected HS
        * over A2dp.Stream will be suspended after 3 secs and if remote has
@@ -2290,8 +2318,39 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
             btif_storage_remove_bonded_device(&bd_addr);
             BTA_DmRemoveDevice(bd_addr);
             bond_state_changed(BT_STATUS_FAIL, pairing_cb.bd_addr, BT_BOND_STATE_NONE);
+      } else if (pairing_cb.bd_addr == bd_addr && pairing_cb.sdp_attempts !=0 &&
+                 pairing_cb.state == BT_BOND_STATE_BONDED) {
+        LOG_INFO(LOG_TAG,
+                 "%s: SDP failed, send empty UUID to unblock bonding %s, transport: %d",
+                 __func__, bd_addr.ToString().c_str(), p_data->link_down.link_type);
+
+        btif_dm_SDP_interrupt = true;
+        btif_dm_SDP_interrupt_bd_addr = bd_addr;
+        btif_dm_SDP_interrupt_transport = p_data->link_down.link_type;
+
+        pairing_cb.sdp_attempts = 0;
+        BTA_DmResetPairingflag(bd_addr);
+        pairing_cb = {};
+        bt_property_t prop_uuids;
+
+        Uuid uuid = {};
+        prop_uuids.type = BT_PROPERTY_UUIDS;
+        prop_uuids.val = &uuid;
+        prop_uuids.len = Uuid::kNumBytes128;
+
+        /* Send the event to the BTIF */
+        HAL_CBACK(bt_hal_cbacks, remote_device_properties_cb,
+                  BT_STATUS_SUCCESS, &bd_addr, 1, &prop_uuids);
       }
 
+#ifdef ADV_AUDIO_FEATURE
+      if ((pairing_cb.bd_addr == bd_addr) &&
+          (is_remote_support_adv_audio(bd_addr))) {
+        BTIF_TRACE_WARNING("%s resetting adv audio pairing info ", __func__);
+        bta_dm_reset_adv_audio_pairing_info(bd_addr);
+        bond_state_changed(BT_STATUS_FAIL, pairing_cb.bd_addr, BT_BOND_STATE_NONE);
+      }
+#endif
       if (num_active_le_links > 0 &&
           p_data->link_down.link_type == BT_TRANSPORT_LE) {
         num_active_le_links--;
