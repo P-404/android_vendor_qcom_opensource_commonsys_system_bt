@@ -3547,7 +3547,8 @@ void bta_av_rcfg_discntd(tBTA_AV_SCB* p_scb, UNUSED_ATTR tBTA_AV_DATA* p_data) {
                    p_scb->peer_addr.ToString().c_str());
 
   p_scb->num_recfg++;
-  if (p_scb->num_recfg > BTA_AV_RECONFIG_RETRY) {
+  if (p_scb->num_recfg > BTA_AV_RECONFIG_RETRY ||
+      (!BTM_IsAclConnectionUp(p_scb->peer_addr, BT_TRANSPORT_BR_EDR))) {
     /* report failure */
     tBTA_AV_RECONFIG reconfig;
     reconfig.status = BTA_AV_FAIL_STREAM;

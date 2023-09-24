@@ -1967,9 +1967,16 @@ bt_status_t HeadsetInterface::PhoneStateChange(
                     BTIF_TRACE_DEBUG("%s: Not create SCO since earbud is not in ear",__FUNCTION__);
                   } else {
 #endif
-                    ag_res.audio_handle = control_block.handle;
-                    btif_transfer_context(btif_in_hf_generic_evt, BTIF_HFP_CB_AUDIO_CONNECTING,
+                    char value[PROPERTY_VALUE_MAX];
+                    if (property_get("vendor.bt.pts.certification", value,"false") &&
+                       !(strcmp(value, "true"))) {
+                       ag_res.audio_handle = BTA_AG_HANDLE_SCO_NO_CHANGE;
+                       BTIF_TRACE_WARNING("%s: PTS: not intiating SCO",__func__);
+                    } else{
+                         ag_res.audio_handle = control_block.handle;
+                         btif_transfer_context(btif_in_hf_generic_evt, BTIF_HFP_CB_AUDIO_CONNECTING,
                                  (char*)(&btif_hf_cb[idx].connected_bda), sizeof(RawAddress), NULL);
+                    }
 #if (TWS_AG_ENABLED == TRUE)
                   }
 #endif

@@ -2294,7 +2294,7 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
       btif_update_remote_version_property(&bd_addr);
 
       HAL_CBACK(bt_hal_cbacks, acl_state_changed_cb, BT_STATUS_SUCCESS,
-                &bd_addr, BT_ACL_STATE_CONNECTED, p_data->link_down.link_type, HCI_SUCCESS);
+                &bd_addr, BT_ACL_STATE_CONNECTED, p_data->link_up.link_type, HCI_SUCCESS);
       break;
 
     case BTA_DM_LINK_DOWN_EVT:
@@ -3947,6 +3947,11 @@ static void btif_dm_ble_auth_cmpl_evt(tBTA_DM_AUTH_CMPL* p_auth_cmpl) {
             (dev_type == BT_DEVICE_TYPE_DUMO) &&
             (addr_type == BLE_ADDR_PUBLIC) &&
             !btm_sec_is_a_bonded_dev_by_transport(bd_addr, BT_TRANSPORT_LE)) {
+            btif_storage_remove_bonded_device(&bd_addr);
+            status = BT_STATUS_AUTH_FAILURE;
+            break;
+          } else if ((pairing_cb.state == BT_BOND_STATE_BONDING) &&
+            btm_sec_is_a_bonded_dev_by_transport(bd_addr, BT_TRANSPORT_LE)) {
             btif_storage_remove_bonded_device(&bd_addr);
             status = BT_STATUS_AUTH_FAILURE;
             break;

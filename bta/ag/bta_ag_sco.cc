@@ -295,11 +295,19 @@ static void bta_ag_sco_disc_cback(uint16_t sco_idx) {
               BTA_AG_SCO_MSBC_SETTINGS_T1;
            } else
 #else
-           {
+        {
+           char value[PROPERTY_VALUE_MAX] = {0};
+           if (property_get("vendor.bt.pts.T2_msbc", value,"false") &&
+                       !(strcmp(value, "true"))) {
+               bta_ag_cb.sco.p_curr_scb->codec_fallback = false;
+               APPL_TRACE_WARNING(
+                      "%s: eSCO failed to open, stop fall back to CVSD",__func__);
+            } else{
                APPL_TRACE_WARNING(
                    "%s: eSCO/SCO failed to open, falling back to CVSD", __func__);
                bta_ag_cb.sco.p_curr_scb->codec_fallback = true;
-           }
+            }
+        }
 #endif
          }
       } else if (bta_ag_sco_is_opening(curr_scb)) {
@@ -674,6 +682,15 @@ bool bta_ag_create_sco(tBTA_AG_SCB* p_scb, bool is_orig) {
 #endif
   /* Initialize eSCO parameters */
   enh_esco_params_t params = esco_parameters_for_codec(codec_index);
+  char value[PROPERTY_VALUE_MAX] = {0};
+  if (property_get("vendor.bt.pts.T1_msbc", value,"false") &&
+                  !(strcmp(value, "true"))) {
+      params.packet_types =ESCO_PKT_TYPES_MASK_EV3|ESCO_PKT_TYPES_MASK_NO_2_EV3|
+                           ESCO_PKT_TYPES_MASK_NO_3_EV3;
+      params.max_latency_ms = 8;
+      APPL_TRACE_DEBUG("%s: T1: max_Latency: %d pkt_type:%d",
+                      __func__,params.max_latency_ms,params.packet_types);
+   }
   /* For CVSD */
   if (esco_codec == BTM_SCO_CODEC_CVSD) {
     /* Use the applicable packet types
@@ -685,7 +702,18 @@ bool bta_ag_create_sco(tBTA_AG_SCB* p_scb, bool is_orig) {
       params.max_latency_ms = 10;
       params.retransmission_effort = ESCO_RETRANSMISSION_POWER;
     }
-  }
+
+    char value[PROPERTY_VALUE_MAX] = {0};
+    if ((property_get("vendor.bt.pts.S2_parameter", value,"false") &&
+                    !(strcmp(value, "true"))) ||
+                    (property_get("vendor.bt.pts.S1_parameter", value,"false") &&
+                    !(strcmp(value, "true")))) {
+        params.max_latency_ms = 7;
+        params.retransmission_effort = ESCO_RETRANSMISSION_POWER;
+        APPL_TRACE_WARNING("%s: PTS: MaxLatency: %d ",__func__,params.max_latency_ms);
+    }
+
+   }
 
 #if (TWS_AG_ENABLED == TRUE)
   if (is_twsp_device(p_scb->peer_addr)) {
@@ -822,12 +850,41 @@ static void bta_ag_create_pending_sco(tBTA_AG_SCB* p_scb, bool is_local) {
         params = esco_parameters_for_codec(ESCO_CODEC_MSBC_T2);
       } else
         params = esco_parameters_for_codec(ESCO_CODEC_MSBC_T1);
+
+      char value[PROPERTY_VALUE_MAX] = {0};
+      if (property_get("vendor.bt.pts.T2_msbc", value,"false") &&
+                     !(strcmp(value, "true"))) {
+         params.packet_types = ESCO_PKT_TYPES_MASK_NO_3_EV3;
+         params.max_latency_ms = 13;
+         APPL_TRACE_WARNING("%s: T2 Params:  pkt_type:%d",__func__,params.packet_types);
+      }
+
+      if (property_get("vendor.bt.pts.T1_msbc", value,"false") &&
+                     !(strcmp(value, "true"))) {
+         params.packet_types = ESCO_PKT_TYPES_MASK_EV3|ESCO_PKT_TYPES_MASK_NO_2_EV3|
+                               ESCO_PKT_TYPES_MASK_NO_3_EV3;
+         APPL_TRACE_WARNING("%s: T1 Params: pkt_type:%d",__func__,params.packet_types);
+      }
     } else {
       params = esco_parameters_for_codec(ESCO_CODEC_CVSD);
       if ((!(p_scb->features & BTA_AG_FEAT_ESCO)) ||
           (!(p_scb->peer_features & BTA_AG_PEER_FEAT_ESCO))) {
         params.max_latency_ms = 10;
         params.retransmission_effort = ESCO_RETRANSMISSION_POWER;
+      }
+
+      char value[PROPERTY_VALUE_MAX] = {0};
+      if (property_get("vendor.bt.pts.S2_parameter", value,"false") &&
+                     !(strcmp(value, "true"))) {
+        params.packet_types = ESCO_PKT_TYPES_MASK_NO_3_EV3;
+        APPL_TRACE_WARNING("%s: PTS:S2:packet_types: %x ",__func__,params.packet_types);
+      }
+
+      if (property_get("vendor.bt.pts.S1_parameter", value,"false") &&
+                     !(strcmp(value, "true"))) {
+        params.packet_types = ESCO_PKT_TYPES_MASK_EV3|ESCO_PKT_TYPES_MASK_NO_2_EV3|
+                              ESCO_PKT_TYPES_MASK_NO_3_EV3;
+        APPL_TRACE_WARNING("%s: PTS:S1:packet_types: %x ",__func__,params.packet_types);
       }
     }
     /* Bypass voice settings if enhanced SCO setup command is supported */

@@ -1606,6 +1606,7 @@ void btm_ble_link_sec_check(const RawAddress& bd_addr,
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(bd_addr);
   uint8_t req_sec_level = BTM_LE_SEC_NONE, cur_sec_level = BTM_LE_SEC_NONE;
   bool le_fresh_pairing_enabled = false;
+  bool is_le_link_encrypted_authenticated = false;
 
   BTM_TRACE_DEBUG("btm_ble_link_sec_check auth_req =0x%x", auth_req);
 
@@ -1629,10 +1630,12 @@ void btm_ble_link_sec_check(const RawAddress& bd_addr,
 
     /* currently encrpted  */
     if (p_dev_rec->sec_flags & BTM_SEC_LE_ENCRYPTED) {
-      if (p_dev_rec->sec_flags & BTM_SEC_LE_AUTHENTICATED)
+      if (p_dev_rec->sec_flags & BTM_SEC_LE_AUTHENTICATED) {
         cur_sec_level = BTM_LE_SEC_AUTHENTICATED;
-      else
+        is_le_link_encrypted_authenticated = true;
+      } else {
         cur_sec_level = BTM_LE_SEC_UNAUTHENTICATE;
+      }
     } else /* unencrypted link */
     {
       /* if bonded, get the key security level */
@@ -1652,7 +1655,10 @@ void btm_ble_link_sec_check(const RawAddress& bd_addr,
     if (!le_fresh_pairing_enabled && (cur_sec_level >= req_sec_level)) {
       /* To avoid re-encryption on an encrypted link for an equal condition
        * encryption */
-      *p_sec_req_act = BTM_BLE_SEC_REQ_ACT_ENCRYPT;
+       if (is_le_link_encrypted_authenticated)
+          *p_sec_req_act = BTM_BLE_SEC_REQ_ACT_DISCARD;
+       else
+          *p_sec_req_act = BTM_BLE_SEC_REQ_ACT_ENCRYPT;
     } else {
       /* start the pariring process to upgrade the keys*/
       *p_sec_req_act = BTM_BLE_SEC_REQ_ACT_PAIR;

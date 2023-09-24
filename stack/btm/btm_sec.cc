@@ -1535,8 +1535,6 @@ static tBTM_STATUS btm_sec_send_hci_disconnect(tBTM_SEC_DEV_REC* p_dev_rec,
  *
  ******************************************************************************/
 void BTM_ConfirmReqReply(tBTM_STATUS res, const RawAddress& bd_addr) {
-  tBTM_SEC_DEV_REC* p_dev_rec;
-
   BTM_TRACE_EVENT("BTM_ConfirmReqReply() State: %s  Res: %u",
                   btm_pair_state_descr(btm_cb.pairing_state), res);
 
@@ -1549,14 +1547,6 @@ void BTM_ConfirmReqReply(tBTM_STATUS res, const RawAddress& bd_addr) {
 
   if ((res == BTM_SUCCESS) || (res == BTM_SUCCESS_NO_SECURITY)) {
     btm_cb.acl_disc_reason = HCI_SUCCESS;
-
-    if (res == BTM_SUCCESS) {
-      p_dev_rec = btm_find_dev(bd_addr);
-      if (p_dev_rec != NULL) {
-        p_dev_rec->sec_flags |= BTM_SEC_LINK_KEY_AUTHED;
-        p_dev_rec->sec_flags |= BTM_SEC_16_DIGIT_PIN_AUTHED;
-      }
-    }
 
     btsnd_hcic_user_conf_reply(bd_addr, true);
   } else {
@@ -4959,6 +4949,7 @@ void btm_sec_link_key_notification(const RawAddress& p_bda,
   if (p_dev_rec->pin_code_length >= 16 ||
       p_dev_rec->link_key_type == BTM_LKEY_TYPE_AUTH_COMB ||
       p_dev_rec->link_key_type == BTM_LKEY_TYPE_AUTH_COMB_P_256) {
+    p_dev_rec->sec_flags |= BTM_SEC_LINK_KEY_AUTHED;
     p_dev_rec->sec_flags |= BTM_SEC_16_DIGIT_PIN_AUTHED;
   }
 
@@ -5586,12 +5577,21 @@ extern tBTM_STATUS btm_sec_execute_procedure(tBTM_SEC_DEV_REC* p_dev_rec) {
  ******************************************************************************/
 static bool btm_sec_start_get_name(tBTM_SEC_DEV_REC* p_dev_rec) {
   uint8_t tempstate = p_dev_rec->sec_state;
-
+  RawAddress bd_addr;
   p_dev_rec->sec_state = BTM_SEC_STATE_GETTING_NAME;
-
+  bd_addr = p_dev_rec->bd_addr;
+  if (p_dev_rec->bd_addr == p_dev_rec->ble.identity_addr ){
+   if (!p_dev_rec->ble.pseudo_addr.IsEmpty()){
+     bd_addr = p_dev_rec->ble.pseudo_addr;
+     BTM_TRACE_EVENT("btm_sec_start_get_name, change addr %s to new %s",
+       p_dev_rec->bd_addr.ToString().c_str(),
+       p_dev_rec->ble.pseudo_addr.ToString().c_str());
+    }
+   }
+  BTM_TRACE_EVENT("btm_sec_start_get_name, bd_addr %s", bd_addr.ToString().c_str());
   /* 0 and NULL are as timeout and callback params because they are not used in
    * security get name case */
-  if ((btm_initiate_rem_name(p_dev_rec->bd_addr, BTM_RMT_NAME_SEC, 0, NULL)) !=
+  if ((btm_initiate_rem_name(bd_addr, BTM_RMT_NAME_SEC, 0, NULL)) !=
       BTM_CMD_STARTED) {
     p_dev_rec->sec_state = tempstate;
     return (false);
