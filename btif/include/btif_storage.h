@@ -294,17 +294,6 @@ bool btif_storage_get_hearing_aid_prop(
 /** Store service changed CCCD value for remote client */
 void btif_storage_set_svc_chg_cccd(const RawAddress& bd_addr, uint8_t cccd);
 
-/** Loads information about bonded HAS devices */
-void btif_storage_load_bonded_leaudio_has_devices(void);
-
-/** Deletes the bonded HAS device info from NVRAM */
-void btif_storage_remove_leaudio_has(const RawAddress& address);
-
-/** Set/Unset the HAS device acceptlist flag. */
-void btif_storage_set_leaudio_has_acceptlist(const RawAddress& address,
-                                             bool add_to_acceptlist);
-
-
 /** Get service changed CCCD value for remote client */
 uint8_t btif_storage_get_svc_chg_cccd(const RawAddress& bda);
 
