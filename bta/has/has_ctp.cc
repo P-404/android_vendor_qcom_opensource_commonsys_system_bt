@@ -120,7 +120,6 @@ std::optional<HasCtpNtf> HasCtpNtf::FromCharacteristicValue(
   }
 
   HasCtpNtf ntf;
-  memset(&ntf, 0, sizeof(HasCtpNtf));
   ntf.opcode = PresetCtpOpcode(op);
   if (ntf.opcode == le_audio::has::PresetCtpOpcode::PRESET_CHANGED) {
     if (!ParsePresetChanged(len, value, ntf)) return std::nullopt;
