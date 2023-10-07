@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 /*
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 
     * Redistribution and use in source and binary forms, with or without
       modification, are permitted (subject to the limitations in the
@@ -123,8 +122,6 @@ class BluetoothAudioClientInterface {
 
   void FlushAudioData();
 
-  void set_low_latency_allowed(bool is_low_latency_allowed);
-
   static constexpr PcmConfiguration kInvalidPcmConfiguration = {};
 
   static bool is_aidl_available();
@@ -160,7 +157,6 @@ class BluetoothAudioClientInterface {
 
  private:
   static inline bool aidl_available = true;
-  bool is_low_latency_allowed_ = false;
   IBluetoothTransportInstance* transport_;
   std::vector<AudioCapabilities> capabilities_;
   static std::unordered_set<BluetoothAudioClientInterface *> objs_address_;

@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 /*
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 
     * Redistribution and use in source and binary forms, with or without
       modification, are permitted (subject to the limitations in the
@@ -83,8 +82,6 @@ class A2dpTransport
   void SourceMetadataChanged(const source_metadata_t& source_metadata);
 
   void SinkMetadataChanged(const sink_metadata_t&) override;
-
-  void SetLatencyMode(bool is_low_latency);
 
   tA2DP_CTRL_CMD GetPendingCmd() const;
 

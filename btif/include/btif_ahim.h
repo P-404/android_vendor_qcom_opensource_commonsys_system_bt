@@ -28,8 +28,7 @@
  *
  ******************************************************************************/
 /*
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 
     * Redistribution and use in source and binary forms, with or without
       modification, are permitted (subject to the limitations in the
@@ -184,8 +183,6 @@ void btif_ahim_update_current_profile(uint8_t profile);
 
 void btif_ahim_update_src_metadata(const source_metadata_t& source_metadata);
 void btif_ahim_update_sink_metadata(const sink_metadata_t& sink_metadata);
-
-void btif_ahim_set_latency_mode(bool is_low_latency);
 
 bool btif_ahim_init_hal(thread_t *t, uint8_t profile);
 

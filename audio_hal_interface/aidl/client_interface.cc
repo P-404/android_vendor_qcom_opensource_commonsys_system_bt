@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /* Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 
     * Redistribution and use in source and binary forms, with or without
       modification, are permitted (subject to the limitations in the
@@ -108,12 +108,6 @@ bool BluetoothAudioClientInterface::is_aidl_available() {
                << ": updating aidl_available: " << aidl_available;
 
   return aidl_available;
-}
-
-void BluetoothAudioClientInterface::set_low_latency_allowed(
-    bool is_low_latency_allowed) {
-  LOG(INFO) << __func__ << ": is_low_latency_allowed: " << is_low_latency_allowed;
-  is_low_latency_allowed_ = is_low_latency_allowed;
 }
 
 std::vector<AudioCapabilities>
@@ -384,10 +378,6 @@ int BluetoothAudioClientInterface::StartSession() {
   DataMQDesc mq_desc;
 
   std::vector<LatencyMode> latency_modes = {LatencyMode::FREE};
-  if (is_low_latency_allowed_) {
-    LOG(INFO) << __func__ << ": Adding Low latency to latency modes: ";
-    latency_modes.push_back(LatencyMode::LOW_LATENCY);
-  }
 
   binder_status_t binder_status = AIBinder_linkToDeath(
      provider_factory_->asBinder().get(), death_recipient_.get(), this);

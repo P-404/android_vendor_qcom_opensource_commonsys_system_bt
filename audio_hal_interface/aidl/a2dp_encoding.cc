@@ -14,8 +14,7 @@
  * limitations under the License.
  */
  /*
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 
     * Redistribution and use in source and binary forms, with or without
       modification, are permitted (subject to the limitations in the
@@ -209,11 +208,6 @@ void A2dpTransport::SinkMetadataChanged(
 
   btif_ahim_update_sink_metadata(sink_metadata);
 
-}
-
-void A2dpTransport::SetLatencyMode(bool is_low_latency) {
-  LOG(INFO) << __func__ << " is_low_latency: " << is_low_latency;
-  btif_ahim_set_latency_mode(is_low_latency);
 }
 
 tA2DP_CTRL_CMD A2dpTransport::GetPendingCmd() const {
@@ -637,18 +631,6 @@ bool setup_codec() {
     pcm_config_global = pcm_config;
     audio_config.set<AudioConfiguration::pcmConfig>(pcm_config);
   }
-
-  A2dpCodecConfig* a2dp_config = bta_av_get_a2dp_current_codec();
-  if (a2dp_config && active_hal_interface) {
-    btav_a2dp_codec_config_t current_codec = a2dp_config->getCodecConfig();
-    if (current_codec.codec_type == BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_ADAPTIVE) {
-      active_hal_interface->set_low_latency_allowed(true);
-    }
-    else {
-      active_hal_interface->set_low_latency_allowed(false);
-    }
-  }
-
   return active_hal_interface->UpdateAudioConfig(audio_config);
 }
 

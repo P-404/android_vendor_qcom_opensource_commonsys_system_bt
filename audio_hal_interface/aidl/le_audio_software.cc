@@ -16,7 +16,7 @@
  */
  /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 
     * Redistribution and use in source and binary forms, with or without
       modification, are permitted (subject to the limitations in the
@@ -207,8 +207,6 @@ void LeAudioTransport::SinkMetadataChanged(
   btif_ahim_update_sink_metadata(sink_metadata);
 }
 
-void LeAudioTransport::SetLatencyMode(bool is_low_latency) {
-}
 
 tA2DP_CTRL_CMD LeAudioTransport:: GetPendingCmd() const {
   return lea_pending_cmd_;
@@ -337,9 +335,6 @@ void LeAudioSinkTransport::SinkMetadataChanged(
   transport_->SinkMetadataChanged(sink_metadata);
 }
 
-void LeAudioSinkTransport::SetLatencyMode(bool is_low_latency) {
-}
-
 void LeAudioSinkTransport::ResetPresentationPosition() {
   transport_->ResetPresentationPosition();
 }
@@ -435,9 +430,6 @@ void LeAudioSourceTransport::SinkMetadataChanged(
                         << ", source: " << source;
 
   transport_->SinkMetadataChanged(sink_metadata);
-}
-
-void LeAudioSourceTransport::SetLatencyMode(bool is_low_latency) {
 }
 
 void LeAudioSourceTransport::ResetPresentationPosition() {
