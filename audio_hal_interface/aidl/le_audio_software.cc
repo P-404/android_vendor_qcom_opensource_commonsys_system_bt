@@ -150,7 +150,7 @@ bool LeAudioTransport::GetPresentationPosition(uint64_t* remote_delay_report_ns,
             << data_position_.tv_nsec
             << "s, delay report=" << remote_delay_report_ms_ << " msec.";
   if (remote_delay_report_ns != nullptr) {
-    *remote_delay_report_ns = (uint64_t)(remote_delay_report_ms_ * 1000000u);
+    *remote_delay_report_ns = (uint64_t)((uint64_t)remote_delay_report_ms_ * 1000000u);
   }
   if (total_bytes_processed != nullptr)
     *total_bytes_processed = (uint64_t)total_bytes_processed_;

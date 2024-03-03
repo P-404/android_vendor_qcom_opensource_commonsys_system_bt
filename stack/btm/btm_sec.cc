@@ -51,6 +51,8 @@
 #include "bta/dm/bta_dm_int.h"
 #include "stack_config.h"
 
+#include "device/include/interop.h"
+
 #define BTM_SEC_MAX_COLLISION_DELAY (5000)
 
 #ifdef APPL_AUTH_WRITE_EXCEPTION
@@ -86,7 +88,7 @@ static bool btm_sec_queue_mx_request(const RawAddress& bd_addr, uint16_t psm,
                                      tBTM_SEC_CALLBACK* p_callback,
                                      void* p_ref_data);
 static void btm_sec_bond_cancel_complete(void);
-void btm_send_link_key_notif(tBTM_SEC_DEV_REC* p_dev_rec);
+static void btm_send_link_key_notif(tBTM_SEC_DEV_REC* p_dev_rec);
 static bool btm_sec_check_prefetch_pin(tBTM_SEC_DEV_REC* p_dev_rec);
 
 static uint8_t btm_sec_start_authorization(tBTM_SEC_DEV_REC* p_dev_rec);
@@ -1471,8 +1473,8 @@ static tBTM_STATUS btm_sec_send_hci_disconnect(tBTM_SEC_DEV_REC* p_dev_rec,
   uint8_t old_state = p_dev_rec->sec_state;
   tBTM_STATUS status = BTM_CMD_STARTED;
 
-  BTM_TRACE_EVENT("btm_sec_send_hci_disconnect:  handle:0x%x, reason=0x%x",
-                  conn_handle, reason);
+  BTM_TRACE_EVENT("btm_sec_send_hci_disconnect:  handle:0x%x, reason=0x%x, old_state=0x%x",
+                  conn_handle, reason, old_state);
 
   /* send HCI_Disconnect on a transport only once */
   switch (old_state) {
@@ -1490,6 +1492,14 @@ static tBTM_STATUS btm_sec_send_hci_disconnect(tBTM_SEC_DEV_REC* p_dev_rec,
 
     case BTM_SEC_STATE_DISCONNECTING_BOTH:
       return status;
+
+    case BTM_SEC_STATE_ENCRYPTING:
+      if (conn_handle == p_dev_rec->hci_handle) {
+        p_dev_rec->sec_state = BTM_SEC_STATE_DISCONNECTING;
+      } else {
+        BTM_TRACE_EVENT("BLE link disconnected during ENCRYPTING.");
+      }
+      break;
 
     default:
       p_dev_rec->sec_state = (conn_handle == p_dev_rec->hci_handle)
@@ -4333,36 +4343,10 @@ void btm_sec_encrypt_change(uint16_t handle, uint8_t status,
 
         if (p_dev_rec->no_smp_on_br) {
           BTM_TRACE_DEBUG("%s NO SM over BR/EDR", __func__);
-        } else {
+        } else if(!interop_match_addr_or_name(INTEROP_DISABLE_OUTGOING_BR_SMP, &p_dev_rec->bd_addr)) {
           BTM_TRACE_DEBUG("%s start SM over BR/EDR", __func__);
-          p_dev_rec->sec_smp_pair_pending = BTM_SEC_SMP_PAIR_PENDING;
           SMP_BR_PairWith(p_dev_rec->bd_addr);
         }
-      }
-    } else {
-      // BR/EDR is successfully encrypted. Correct LK type if needed
-      // (BR/EDR LK derived from LE LTK was used for encryption)
-      if ((encr_enable == 1) && /* encryption is ON for SSP */
-          /* LK type is for BR/EDR SC */
-          (p_dev_rec->link_key_type == BTM_LKEY_TYPE_UNAUTH_COMB_P_256 ||
-           p_dev_rec->link_key_type == BTM_LKEY_TYPE_AUTH_COMB_P_256)) {
-          if (p_dev_rec->sec_smp_pair_pending != BTM_SEC_SMP_PAIR_PENDING) {
-            if (p_dev_rec->link_key_type == BTM_LKEY_TYPE_UNAUTH_COMB_P_256)
-              p_dev_rec->link_key_type = BTM_LKEY_TYPE_UNAUTH_COMB;
-            else /* BTM_LKEY_TYPE_AUTH_COMB_P_256 */
-              p_dev_rec->link_key_type = BTM_LKEY_TYPE_AUTH_COMB;
-
-            BTM_TRACE_DEBUG("updated link key type to %d",
-                        p_dev_rec->link_key_type);
-            btm_send_link_key_notif(p_dev_rec);
-          } else {
-            BTM_TRACE_DEBUG("link key type to %d will update after SMP",
-                        p_dev_rec->link_key_type);
-            if (p_dev_rec->link_key_type == BTM_LKEY_TYPE_UNAUTH_COMB_P_256)
-              p_dev_rec->sec_smp_pair_pending |= BTM_SEC_LINK_KEY_TYPE_UNAUTH;
-            else
-              p_dev_rec->sec_smp_pair_pending |= BTM_SEC_LINK_KEY_TYPE_AUTH;
-          }
       }
     }
   }
@@ -4900,7 +4884,6 @@ void btm_sec_disconnected(uint16_t handle, uint8_t reason) {
   }
   p_dev_rec->sec_state = BTM_SEC_STATE_IDLE;
   p_dev_rec->security_required = BTM_SEC_NONE;
-  p_dev_rec->sec_smp_pair_pending = BTM_SEC_SMP_NO_PAIR_PENDING;
 
   p_callback = p_dev_rec->p_callback;
   RawAddress addr = p_dev_rec->bd_addr;
@@ -5586,21 +5569,12 @@ extern tBTM_STATUS btm_sec_execute_procedure(tBTM_SEC_DEV_REC* p_dev_rec) {
  ******************************************************************************/
 static bool btm_sec_start_get_name(tBTM_SEC_DEV_REC* p_dev_rec) {
   uint8_t tempstate = p_dev_rec->sec_state;
-  RawAddress bd_addr;
+
   p_dev_rec->sec_state = BTM_SEC_STATE_GETTING_NAME;
-  bd_addr = p_dev_rec->bd_addr;
-  if (p_dev_rec->bd_addr == p_dev_rec->ble.identity_addr ){
-   if (!p_dev_rec->ble.pseudo_addr.IsEmpty()){
-     bd_addr = p_dev_rec->ble.pseudo_addr;
-     BTM_TRACE_EVENT("btm_sec_start_get_name, change addr %s to new %s",
-       p_dev_rec->bd_addr.ToString().c_str(),
-       p_dev_rec->ble.pseudo_addr.ToString().c_str());
-    }
-   }
-  BTM_TRACE_EVENT("btm_sec_start_get_name, bd_addr %s", bd_addr.ToString().c_str());
+
   /* 0 and NULL are as timeout and callback params because they are not used in
    * security get name case */
-  if ((btm_initiate_rem_name(bd_addr, BTM_RMT_NAME_SEC, 0, NULL)) !=
+  if ((btm_initiate_rem_name(p_dev_rec->bd_addr, BTM_RMT_NAME_SEC, 0, NULL)) !=
       BTM_CMD_STARTED) {
     p_dev_rec->sec_state = tempstate;
     return (false);
@@ -5862,7 +5836,7 @@ static void btm_sec_collision_timeout(UNUSED_ATTR void* data) {
  * Returns          Pointer to the record or NULL
  *
  ******************************************************************************/
-void btm_send_link_key_notif(tBTM_SEC_DEV_REC* p_dev_rec) {
+static void btm_send_link_key_notif(tBTM_SEC_DEV_REC* p_dev_rec) {
   if (btm_cb.api.p_link_key_callback)
     (*btm_cb.api.p_link_key_callback)(
         p_dev_rec->bd_addr, p_dev_rec->dev_class, p_dev_rec->sec_bd_name,

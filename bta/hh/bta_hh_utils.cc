@@ -486,13 +486,13 @@ void bta_hh_cleanup_disable(tBTA_HH_STATUS status) {
  ******************************************************************************/
 uint8_t bta_hh_dev_handle_to_cb_idx(uint8_t dev_handle) {
   uint8_t index = BTA_HH_IDX_INVALID;
-
+  APPL_TRACE_WARNING("bta_hh_dev_handle_to_cb_idx dev_handle = %d", dev_handle);
 #if (BTA_HH_LE_INCLUDED == TRUE)
   if (BTA_HH_IS_LE_DEV_HDL(dev_handle)) {
     if (BTA_HH_IS_LE_DEV_HDL_VALID(dev_handle))
       index = bta_hh_cb.le_cb_index[BTA_HH_GET_LE_CB_IDX(dev_handle)];
 #if (BTA_HH_DEBUG == TRUE)
-    APPL_TRACE_DEBUG("bta_hh_dev_handle_to_cb_idx dev_handle = %d index = %d",
+    APPL_TRACE_WARNING("bta_hh_dev_handle_to_cb_idx dev_handle = %d index = %d",
                      dev_handle, index);
 #endif
   } else

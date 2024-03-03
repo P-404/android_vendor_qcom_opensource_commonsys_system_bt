@@ -641,7 +641,7 @@ void btif_a2dp_source_stop_audio_req(void) {
   if (btif_a2dp_source_is_hal_v2_enabled()) {
 #if AHIM_ENABLED
     pending_cmd = btif_ahim_get_pending_command(A2DP);
-#else 
+#else
     pending_cmd = bluetooth::audio::a2dp::get_pending_command();
 #endif
   } else {
@@ -1780,6 +1780,7 @@ void btif_a2dp_update_sink_latency_change() {
   } else {
     btif_a2dp_audio_send_sink_latency();
   }
+  btif_ahim_setup_codec(A2DP);
 }
 
 void btif_a2dp_source_command_ack(tA2DP_CTRL_CMD cmd, tA2DP_CTRL_ACK status) {

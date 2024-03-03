@@ -71,6 +71,8 @@
 #include "stack/gatt/gatt_int.h"
 #include "stack/gatt/eatt_int.h"
 
+#include "btm_ble_int_types.h"
+
 using base::Bind;
 using bluetooth::Uuid;
 
@@ -1726,10 +1728,18 @@ static bt_status_t btif_in_fetch_bonded_ble_device(
         BT_STATUS_SUCCESS) {
       /* Try to read address type from device info, if not present,
       then it defaults to BLE_ADDR_PUBLIC */
-      uint8_t tmp_dev_type;
-      uint8_t tmp_addr_type;
-      BTM_ReadDevInfo(bd_addr, &tmp_dev_type, &tmp_addr_type);
-      addr_type = tmp_addr_type;
+      addr_type = BLE_ADDR_PUBLIC;
+      if (BTM_BLE_IS_RANDOM_STATIC_BDA(bd_addr)) {
+        addr_type = BLE_ADDR_RANDOM;
+        BTIF_TRACE_DEBUG("%s Is Random static and addr_type: %d", __func__,
+                         addr_type);
+      }
+
+      if (BTM_BLE_IS_RESOLVE_BDA(bd_addr)) {
+        addr_type = BLE_ADDR_RANDOM;
+        BTIF_TRACE_DEBUG("%s Is Resolvable and addr_type: %d", __func__,
+                         addr_type);
+      }
 
       btif_storage_set_remote_addr_type(&bd_addr, addr_type);
     }

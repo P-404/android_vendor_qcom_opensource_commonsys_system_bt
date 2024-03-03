@@ -876,7 +876,7 @@ void bta_gattc_cfg_mtu(tBTA_GATTC_CLCB* p_clcb, tBTA_GATTC_DATA* p_data) {
       return;
     case MTU_EXCHANGE_IN_PROGRESS:
       VLOG(1) << __func__ << " Enqueue MTU Request  - waiting for response on p_clcb: " << p_clcb;
-      p_clcb->p_q_cmd_queue.push_back(p_data);
+      bta_gattc_enqueue(p_clcb, p_data);
       return;
 
     case MTU_EXCHANGE_NOT_DONE_YET:
@@ -1060,7 +1060,7 @@ void bta_gattc_disc_cmpl(tBTA_GATTC_CLCB* p_clcb,
     bta_gattc_continue(p_clcb);
   }
 
-  if (p_clcb->p_rcb->p_cback && p_clcb->p_srcb) {
+  if (p_clcb->p_rcb && p_clcb->p_rcb->p_cback && p_clcb->p_srcb) {
     tBTA_GATTC bta_gattc;
     bta_gattc.remote_bda = p_clcb->p_srcb->server_bda;
     (*p_clcb->p_rcb->p_cback)(BTA_GATTC_SRVC_DISC_DONE_EVT, &bta_gattc);
@@ -1544,8 +1544,13 @@ static void bta_gattc_enc_cmpl_cback(tGATT_IF gattc_if, const RawAddress& bda) {
 
   VLOG(1) << __func__ << ": cif:" << +gattc_if;
 
-  do_in_bta_thread(FROM_HERE,
+  LOG(WARNING) << __func__ << ": cif:" << +gattc_if
+               << " state: " <<+p_clcb->state;
+
+  if (p_clcb->state == BTA_GATTC_CONN_ST) {
+    do_in_bta_thread(FROM_HERE,
                    base::Bind(&bta_gattc_process_enc_cmpl, gattc_if, bda));
+  }
 }
 
 /** process refresh API to delete cache and start a new discovery if currently

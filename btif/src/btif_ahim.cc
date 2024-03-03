@@ -136,10 +136,10 @@ void btif_ahim_signal_src_metadata_complete() {
   std::unique_lock<std::mutex> guard(src_metadata_wait_mutex_);
   if(!src_metadata_wait) {
     src_metadata_wait = true;
-    BTIF_TRACE_IMP("%s: singnalling", __func__);
+    LOG(INFO) << __func__ << ": Signalling";
     src_metadata_wait_cv.notify_all();
   } else {
-    BTIF_TRACE_WARNING("%s: already signalled ",__func__);
+    LOG(INFO) << __func__ << ": Already signalled";
   }
 }
 
@@ -147,18 +147,18 @@ void btif_ahim_signal_snk_metadata_complete() {
   std::unique_lock<std::mutex> guard(snk_metadata_wait_mutex_);
   if(!snk_metadata_wait) {
     snk_metadata_wait = true;
-    BTIF_TRACE_IMP("%s: singnalling", __func__);
+    LOG(INFO) << __func__ << ": Signalling";
     snk_metadata_wait_cv.notify_all();
   } else {
-    BTIF_TRACE_WARNING("%s: already signalled ",__func__);
+    LOG(INFO) << __func__ << ": Already signalled";
   }
 }
 
 void reg_cb_with_ahim(uint8_t client_id,
                      btif_ahim_client_callbacks_t* pclient_cb)
 {
-  BTIF_TRACE_IMP("%s, registering callback for client "
-                  "id %u with AHIM", __func__, client_id);
+  LOG(INFO) << __func__ << "Registering callback for client id "
+            << client_id << " with AHIM";
   // No need to register call back for A2DP.
    if (client_id <= A2DP|| client_id >= MAX_CLIENT)
    {
@@ -183,14 +183,12 @@ void btif_ahim_update_current_profile(uint8_t profile)
        cur_active_profile = profile;
        break;
      default:
-       BTIF_TRACE_WARNING("%s, unsupported active profile, resetting to A2DP"
-                          , __func__);
+       LOG(INFO) << __func__ << ": Unsupported active profile, resetting to A2DP";
        cur_active_profile = A2DP;
        break;
   }
 
-  BTIF_TRACE_IMP("%s: current active profile is %u", __func__,
-                  cur_active_profile);
+  LOG(INFO) << __func__ << ": Current active profile: "<< cur_active_profile;
 }
 void btif_ahim_process_request(tA2DP_CTRL_CMD cmd, uint8_t profile, 
                                uint8_t direction) {
@@ -239,18 +237,18 @@ void btif_ahim_update_src_metadata (const source_metadata_t& source_metadata) {
 
   // pass on the callbacks to ACM only for new vendor
   if(btif_ahim_is_aosp_aidl_hal_enabled()) {
-      BTIF_TRACE_IMP("%s: sending AIDL request to Audio Group Manager", __func__);
-      if (pclient_cbs[AUDIO_GROUP_MGR - 1] &&
-          pclient_cbs[AUDIO_GROUP_MGR - 1]->src_meta_update) {
-        BTIF_TRACE_IMP("%s: calling call back for Audio Group Manager", __func__);
-        std::unique_lock<std::mutex> guard(src_metadata_wait_mutex_);
-        src_metadata_wait = false;
-        pclient_cbs[AUDIO_GROUP_MGR - 1]->src_meta_update(source_metadata);
-        src_metadata_wait_cv.wait_for(guard, std::chrono::milliseconds(3200),
-                          []{return src_metadata_wait;});
-        BTIF_TRACE_IMP("%s: src waiting completed", __func__);
-      }
-   }
+    BTIF_TRACE_IMP("%s: sending AIDL request to Audio Group Manager", __func__);
+    if (pclient_cbs[AUDIO_GROUP_MGR - 1] &&
+        pclient_cbs[AUDIO_GROUP_MGR - 1]->src_meta_update) {
+      BTIF_TRACE_IMP("%s: calling call back for Audio Group Manager", __func__);
+      std::unique_lock<std::mutex> guard(src_metadata_wait_mutex_);
+      src_metadata_wait = false;
+      pclient_cbs[AUDIO_GROUP_MGR - 1]->src_meta_update(source_metadata);
+      src_metadata_wait_cv.wait_for(guard, std::chrono::milliseconds(3200),
+                        []{return src_metadata_wait;});
+      BTIF_TRACE_IMP("%s: src waiting completed", __func__);
+    }
+  }
 }
 
 void btif_ahim_update_params (uint16_t delay, uint8_t mode) {
@@ -292,18 +290,18 @@ bool btif_ahim_init_hal(thread_t *t, uint8_t profile) {
     std::lock_guard<std::mutex>lock(session_mtx);
     BTIF_TRACE_IMP("%s: AIDL", __func__);
     if (profile == A2DP) {
-      if (unicastSinkClientInterface != nullptr) {
-        leAudioClientInterface->ReleaseSink(unicastSinkClientInterface);
-        unicastSinkClientInterface = nullptr;
-      }
-      if (unicastSourceClientInterface != nullptr) {
-        leAudioClientInterface->ReleaseSource(unicastSourceClientInterface);
-        unicastSourceClientInterface = nullptr;
-      }
-      if (broadcastSinkClientInterface != nullptr) {
-        leAudioClientInterface->ReleaseSink(broadcastSinkClientInterface);
-        broadcastSinkClientInterface = nullptr;
-      }
+        if (unicastSinkClientInterface != nullptr) {
+          leAudioClientInterface->ReleaseSink(unicastSinkClientInterface);
+          unicastSinkClientInterface = nullptr;
+        }
+        if (unicastSourceClientInterface != nullptr) {
+          leAudioClientInterface->ReleaseSource(unicastSourceClientInterface);
+          unicastSourceClientInterface = nullptr;
+        }
+        if (broadcastSinkClientInterface != nullptr) {
+          leAudioClientInterface->ReleaseSink(broadcastSinkClientInterface);
+          broadcastSinkClientInterface = nullptr;
+        }
       return bluetooth::audio::aidl::a2dp::init(t);
     } else {
       if(leAudioClientInterface == nullptr) {
@@ -610,9 +608,13 @@ LeAudioConfiguration fetch_offload_audio_config(int profile, int direction) {
 
     int32_t latency = 0;
     if (direction == RX_ONLY_CONFIG) {
-      latency = unicastSourceClientInterface->GetRemoteDelay();
+      if (unicastSourceClientInterface != nullptr) {
+        latency = unicastSourceClientInterface->GetRemoteDelay();
+      }
     } else {
-      latency = unicastSinkClientInterface->GetRemoteDelay();
+      if (unicastSinkClientInterface != nullptr) {
+        latency = unicastSinkClientInterface->GetRemoteDelay();
+      }
     }
     // TODO to fill the right PD
     LeAudioConfiguration ucast_config = {
@@ -674,9 +676,13 @@ LeAudioConfiguration fetch_offload_audio_config(int profile, int direction) {
 
     int32_t latency = 0;
     if (direction == RX_ONLY_CONFIG) {
-      latency = unicastSourceClientInterface->GetRemoteDelay();
+      if (unicastSourceClientInterface != nullptr) {
+        latency = unicastSourceClientInterface->GetRemoteDelay();
+      }
     } else {
-      latency = unicastSinkClientInterface->GetRemoteDelay();
+      if (unicastSinkClientInterface != nullptr) {
+        latency = unicastSinkClientInterface->GetRemoteDelay();
+      }
     }
     // TODO to fill the right PD
     LeAudioConfiguration ucast_config = {

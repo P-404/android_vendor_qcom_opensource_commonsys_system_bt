@@ -134,6 +134,11 @@ struct HearingDevice {
      reads is tracked by num_intervals_since_last_rssi_read. */
   int read_rssi_count;
   int num_intervals_since_last_rssi_read;
+  bool dev_disconnected_by_user;
+
+  /* This is true while background connect is delayed if previous LE ACL link is
+     in disconnecting */
+  bool delay_background_connect;
 
   HearingDevice(const RawAddress& address, uint8_t capabilities,
                 uint16_t codecs, uint16_t audio_control_point_handle,
@@ -162,7 +167,9 @@ struct HearingDevice {
         codecs(codecs),
         playback_started(false),
         command_acked(false),
-        read_rssi_count(0) {}
+        read_rssi_count(0),
+        delay_background_connect(false),
+        dev_disconnected_by_user(false) {}
 
   HearingDevice(const RawAddress& address, bool first_connection)
       : address(address),
@@ -184,7 +191,9 @@ struct HearingDevice {
         codecs(0),
         playback_started(false),
         command_acked(false),
-        read_rssi_count(0) {}
+        read_rssi_count(0),
+        delay_background_connect(false),
+        dev_disconnected_by_user(false) {}
 
   HearingDevice() : HearingDevice(RawAddress::kEmpty, false) {}
 
@@ -213,6 +222,7 @@ class HearingAid {
   virtual void Disconnect(const RawAddress& address) = 0;
   virtual void AddToAcceptlist(const RawAddress& address) = 0;
   virtual void SetVolume(int8_t volume) = 0;
+  virtual void OnAclDisconnected(const RawAddress& address) = 0;
 };
 
 /* Represents configuration of audio codec, as exchanged between hearing aid and
