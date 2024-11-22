@@ -181,6 +181,7 @@ typedef enum {
   BT_HOST_REASON_NVM_FILE_NOT_FOUND              = 0x45,
   BT_HOST_REASON_UART_BAUDRATE_CHANGE_FAILED     = 0x46,
   BT_HOST_REASON_PATCH_CONFIG_FAILED             = 0x47,
+  BT_HOST_REASON_BT_EN_PIN_LOW                   = 0x49,
   // UART driver crash reasons
   UART_REASON_DEFAULT                            =  0x51,
   UART_REASON_INVALID_FW_LOADED                  =  0x52,
@@ -314,6 +315,7 @@ static secondary_reason secondary_crash_reason [] = {
 { BT_HOST_REASON_NVM_FILE_NOT_FOUND              ,  "NVM File not found"},
 { BT_HOST_REASON_UART_BAUDRATE_CHANGE_FAILED     ,  "UART Baudrate change failed"},
 { BT_HOST_REASON_PATCH_CONFIG_FAILED             ,  "Patch config cmd failed"},
+{ BT_HOST_REASON_BT_EN_PIN_LOW                   ,  "BT EN pin pulled low"},
   // UART driver crash reasons
 { UART_REASON_DEFAULT                            ,  "UART reason Default"},
 { UART_REASON_INVALID_FW_LOADED                  ,  "UART invalid FW loaded"},

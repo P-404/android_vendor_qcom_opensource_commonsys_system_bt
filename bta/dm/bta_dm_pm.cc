@@ -349,6 +349,10 @@ static void bta_dm_pm_cback(tBTA_SYS_CONN_STATUS status, uint8_t id,
 
   p_dev = bta_dm_find_peer_device(peer_addr);
 
+  if ((p_dev == NULL) || (p_dev->transport != BT_TRANSPORT_BR_EDR)) {
+    APPL_TRACE_DEBUG("bta_dm_pm_cback: No peer device found");
+    return;
+  }
   /* find if there is an power mode entry for the service */
   for (i = 1; i <= p_bta_dm_pm_cfg[0].app_id; i++) {
     if ((p_bta_dm_pm_cfg[i].id == id) &&

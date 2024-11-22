@@ -2328,6 +2328,12 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
         btif_dm_SDP_interrupt_bd_addr = bd_addr;
         btif_dm_SDP_interrupt_transport = p_data->link_down.link_type;
 
+#ifdef ADV_AUDIO_FEATURE
+      if (is_remote_support_adv_audio(bd_addr)) {
+        BTIF_TRACE_WARNING("%s resetting adv audio pairing info ", __func__);
+        bta_dm_reset_adv_audio_pairing_info(bd_addr);
+      }
+#endif
         pairing_cb.sdp_attempts = 0;
         BTA_DmResetPairingflag(bd_addr);
         pairing_cb = {};
@@ -2351,6 +2357,11 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
         bond_state_changed(BT_STATUS_FAIL, pairing_cb.bd_addr, BT_BOND_STATE_NONE);
       }
 #endif
+      if (pairing_cb.bd_addr == bd_addr && pairing_cb.state == BT_BOND_STATE_BONDING) {
+        BTIF_TRACE_DEBUG("Clear pairing callback state for %s", bd_addr.ToString().c_str());
+        bond_state_changed(BT_STATUS_FAIL, pairing_cb.bd_addr, BT_BOND_STATE_NONE);
+      }
+
       if (num_active_le_links > 0 &&
           p_data->link_down.link_type == BT_TRANSPORT_LE) {
         num_active_le_links--;

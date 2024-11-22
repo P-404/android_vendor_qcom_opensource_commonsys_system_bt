@@ -679,6 +679,7 @@ void btsnd_hcic_ble_read_resolvable_addr_local(uint8_t addr_type_peer,
 }
 
 void btsnd_hcic_ble_set_addr_resolution_enable(uint8_t addr_resolution_enable) {
+  VLOG(1)<< __func__;
   BT_HDR* p = (BT_HDR*)osi_malloc(HCI_CMD_BUF_SIZE);
   uint8_t* pp = (uint8_t*)(p + 1);
 

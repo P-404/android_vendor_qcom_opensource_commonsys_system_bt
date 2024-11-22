@@ -420,7 +420,7 @@ bool is_handle_equal(void* data, void* context) {
   tBTM_SEC_DEV_REC* p_dev_rec = static_cast<tBTM_SEC_DEV_REC*>(data);
   uint16_t* handle = static_cast<uint16_t*>(context);
 
-  if (p_dev_rec->hci_handle == *handle || p_dev_rec->ble_hci_handle == *handle)
+  if (p_dev_rec && (p_dev_rec->hci_handle == *handle || p_dev_rec->ble_hci_handle == *handle))
     return false;
 
   return true;
@@ -437,6 +437,8 @@ bool is_handle_equal(void* data, void* context) {
  *
  ******************************************************************************/
 tBTM_SEC_DEV_REC* btm_find_dev_by_handle(uint16_t handle) {
+  if (btm_cb.sec_dev_rec == NULL) return NULL;
+
   list_node_t* n = list_foreach(btm_cb.sec_dev_rec, is_handle_equal, &handle);
   if (n) return static_cast<tBTM_SEC_DEV_REC*>(list_node(n));
 
@@ -448,9 +450,11 @@ bool is_address_equal(void* data, void* context) {
   const RawAddress* bd_addr = ((RawAddress*)context);
 
   if (*bd_addr == RawAddress::kEmpty) return true;
-  if (p_dev_rec->bd_addr == *bd_addr) return false;
-  // If a LE random address is looking for device record
-  if (p_dev_rec->ble.pseudo_addr == *bd_addr) return false;
+  if (p_dev_rec) {
+    if (p_dev_rec->bd_addr == *bd_addr) return false;
+    // If a LE random address is looking for device record
+    if (p_dev_rec->ble.pseudo_addr == *bd_addr) return false;
+  }
 
   if (btm_ble_addr_resolvable(*bd_addr, p_dev_rec)) return false;
   return true;
@@ -501,7 +505,7 @@ void btm_consolidate_dev(tBTM_SEC_DEV_REC* p_target_rec) {
 
     if (p_target_rec == p_dev_rec) continue;
 
-    if (p_dev_rec->bd_addr == p_target_rec->bd_addr) {
+    if (p_dev_rec && p_dev_rec->bd_addr == p_target_rec->bd_addr) {
       memcpy(p_target_rec, p_dev_rec, sizeof(tBTM_SEC_DEV_REC));
       p_target_rec->ble = temp_rec.ble;
       p_target_rec->ble_hci_handle = temp_rec.ble_hci_handle;
@@ -577,6 +581,8 @@ static tBTM_SEC_DEV_REC* btm_find_oldest_dev_rec(void) {
        node = list_next(node)) {
     tBTM_SEC_DEV_REC* p_dev_rec =
         static_cast<tBTM_SEC_DEV_REC*>(list_node(node));
+
+    if (p_dev_rec == NULL) continue;
 
     if ((p_dev_rec->sec_flags &
          (BTM_SEC_LINK_KEY_KNOWN | BTM_SEC_LE_LINK_KEY_KNOWN)) == 0) {

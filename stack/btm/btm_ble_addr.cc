@@ -173,6 +173,7 @@ void btm_gen_non_resolvable_private_addr(tBTM_BLE_ADDR_CBACK* p_cback,
  ******************************************************************************/
 bool btm_ble_init_pseudo_addr(tBTM_SEC_DEV_REC* p_dev_rec,
                               const RawAddress& new_pseudo_addr) {
+  if (p_dev_rec == NULL) return false;
   if (p_dev_rec->ble.pseudo_addr.IsEmpty()) {
     p_dev_rec->ble.pseudo_addr = new_pseudo_addr;
     return true;
@@ -211,6 +212,8 @@ static bool rpa_matches_irk(const RawAddress& rpa, const Octet16& irk) {
 bool btm_ble_addr_resolvable(const RawAddress& rpa,
                              tBTM_SEC_DEV_REC* p_dev_rec) {
   if (!BTM_BLE_IS_RESOLVE_BDA(rpa)) return false;
+
+  if (p_dev_rec == NULL) return false;
 
   if ((p_dev_rec->device_type & BT_DEVICE_TYPE_BLE) &&
       (p_dev_rec->ble.key_type & BTM_LE_KEY_PID)) {
@@ -285,7 +288,7 @@ tBTM_SEC_DEV_REC* btm_find_dev_by_identity_addr(const RawAddress& bd_addr,
        node = list_next(node)) {
     tBTM_SEC_DEV_REC* p_dev_rec =
         static_cast<tBTM_SEC_DEV_REC*>(list_node(node));
-    if (p_dev_rec->ble.identity_addr == bd_addr) {
+    if (p_dev_rec != NULL && p_dev_rec->ble.identity_addr == bd_addr) {
       if ((p_dev_rec->ble.identity_addr_type & (~BLE_ADDR_TYPE_ID_BIT)) !=
           (addr_type & (~BLE_ADDR_TYPE_ID_BIT)))
         BTM_TRACE_WARNING(

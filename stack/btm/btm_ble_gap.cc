@@ -236,7 +236,7 @@ static void btm_ble_process_adv_pkt_cont(
     uint16_t evt_type, uint8_t addr_type, const RawAddress& bda,
     uint8_t primary_phy, uint8_t secondary_phy, uint8_t advertising_sid,
     int8_t tx_power, int8_t rssi, uint16_t periodic_adv_int, uint8_t data_len,
-    uint8_t* data);
+    uint8_t* data, const RawAddress& original_bda);
 static uint8_t btm_set_conn_mode_adv_init_addr(tBTM_BLE_INQ_CB* p_cb,
                                                RawAddress& p_peer_addr_ptr,
                                                tBLE_ADDR_TYPE* p_peer_addr_type,
@@ -498,7 +498,6 @@ tBTM_STATUS BTM_BleObserve(bool start, uint8_t duration,
   std::vector<uint16_t> scan_window = {BTM_BLE_GAP_DISC_SCAN_WIN, BTM_BLE_GAP_DISC_SCAN_WIN};
 
   uint8_t scan_phy = !p_inq->scan_phy ? SCAN_PHY_LE_1M : p_inq->scan_phy;
-
   int phy_cnt = std::bitset<std::numeric_limits<uint8_t>::digits>(scan_phy).count();
   if(!p_inq->scan_interval.empty() && !p_inq->scan_window.empty()) {
   for(i=0; i< phy_cnt; i++) {
@@ -536,7 +535,9 @@ tBTM_STATUS BTM_BleObserve(bool start, uint8_t duration,
 /* assume observe always not using white list */
 #if (defined BLE_PRIVACY_SPT && BLE_PRIVACY_SPT == TRUE)
       /* enable resolving list */
-      btm_ble_enable_resolving_list_for_platform(BTM_BLE_RL_SCAN);
+      BTM_TRACE_DEBUG("%s Enabling resolving list with BTM_BLE_RL_SCAN ",
+                      __func__);
+      btm_ble_enable_resolving_list_for_scan(BTM_BLE_RL_SCAN);
 #endif
 
       btm_send_hci_set_scan_params(scan_phy, p_inq->scan_type,
@@ -1295,11 +1296,13 @@ void BTM_BleStartPeriodicSync(uint8_t adv_sid, RawAddress address, uint16_t skip
              BigInfoReportCb biginfo_reportCb) {
   BTM_TRACE_DEBUG("[PSync]%s",__func__);
   int index = btm_ble_get_free_psync_index();
-  tBTM_BLE_PERIODIC_SYNC *p = &btm_ble_pa_sync_cb.p_sync[index];
+
   if (index == MAX_SYNC_TRANSACTION) {
     syncCb.Run(BTM_NO_RESOURCES, 0, adv_sid, BLE_ADDR_RANDOM, address, 0, 0);
     return;
   }
+  tBTM_BLE_PERIODIC_SYNC *p = &btm_ble_pa_sync_cb.p_sync[index];
+
   p->in_use = true;
   p->remote_bda = address;
   p->sid = adv_sid;
@@ -2823,13 +2826,17 @@ void btm_ble_process_ext_adv_pkt(uint8_t data_len, uint8_t* data) {
     BTM_TRACE_EVENT("%s Address type %d", __func__, addr_type);
     VLOG(1) << __func__ << ": bda=" << bda;
 
+    // Store this to pass up the callback chain to GattService#onScanResult for
+    // the check in ScanFilter#matches
+    RawAddress original_bda = bda;
+
     if (addr_type != BLE_ADDR_ANONYMOUS) {
       btm_ble_process_adv_addr(bda, &addr_type);
     }
 
     btm_ble_process_adv_pkt_cont(event_type, addr_type, bda, primary_phy,
                                  secondary_phy, advertising_sid, tx_power, rssi,
-                                 periodic_adv_int, pkt_data_len, pkt_data);
+                                 periodic_adv_int, pkt_data_len, pkt_data, original_bda);
   }
 }
 
@@ -2878,6 +2885,9 @@ void btm_ble_process_adv_pkt(uint8_t data_len, uint8_t* data) {
                       pkt_data_len, rssi);
     }
 
+    // Pass up the address to GattService#onScanResult to use in
+    // ScanFilter#matches
+    RawAddress original_bda = bda;
     btm_ble_process_adv_addr(bda, &addr_type);
 
     uint16_t event_type;
@@ -2904,7 +2914,7 @@ void btm_ble_process_adv_pkt(uint8_t data_len, uint8_t* data) {
     btm_ble_process_adv_pkt_cont(
         event_type, addr_type, bda, PHY_LE_1M, PHY_LE_NO_PACKET, NO_ADI_PRESENT,
         TX_POWER_NOT_PRESENT, rssi, 0x00 /* no periodic adv */, pkt_data_len,
-        pkt_data);
+        pkt_data, original_bda);
   }
 }
 
@@ -2916,7 +2926,7 @@ static void btm_ble_process_adv_pkt_cont(
     uint16_t evt_type, uint8_t addr_type, const RawAddress& bda,
     uint8_t primary_phy, uint8_t secondary_phy, uint8_t advertising_sid,
     int8_t tx_power, int8_t rssi, uint16_t periodic_adv_int, uint8_t data_len,
-    uint8_t* data) {
+    uint8_t* data, const RawAddress& original_bda) {
   tBTM_INQUIRY_VAR_ST* p_inq = &btm_cb.btm_inq_vars;
   bool update = true;
 
@@ -3069,6 +3079,9 @@ static void btm_ble_process_adv_pkt_cont(
     (p_inq_results_cb)((tBTM_INQ_RESULTS*)&p_i->inq_info.results,
                        const_cast<uint8_t*>(adv_data.data()), adv_data.size());
   }
+
+  // Pass address up to GattService#onScanResult
+  p_i->inq_info.results.original_bda = original_bda;
 
   tBTM_INQ_RESULTS_CB* p_obs_results_cb = btm_cb.ble_ctr_cb.p_obs_results_cb;
   if (p_obs_results_cb && (result & BTM_BLE_OBS_RESULT)) {

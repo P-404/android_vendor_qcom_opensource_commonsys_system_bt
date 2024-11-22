@@ -165,6 +165,7 @@ class CtesManagerImpl : public CtesManager {
 
   public:
      CtesDevices remoteDevices;
+     std::vector<uint16_t> added_services;
      virtual ~CtesManagerImpl() = default;
 
 
@@ -241,6 +242,13 @@ static void OnCteServiceAddedCb(uint8_t status, int serverIf,
   }
 
   for(int i=0; i< (int)service.size(); i++) {
+    if (status == GATT_SUCCESS && cte_instance &&
+        (service[i].type == BTGATT_DB_PRIMARY_SERVICE || service[i].type == BTGATT_DB_SECONDARY_SERVICE)) {
+      cte_instance->added_services.push_back(service[i].attribute_handle);
+      LOG(INFO) << __func__
+                << ": added service: uuid=" << service[i].uuid.ToString()
+                << ", handle=" << service[i].attribute_handle;
+    }
     if (service[i].uuid == CONSTANT_TONE_EXT_SERVICE_UUID) {
       LOG(INFO) << __func__ << " CTE service added attr handle: " << service[i].attribute_handle;
     } else if(service[i].uuid ==  CONSTANT_TONE_EXT_ENABLE_CHAR_UUID) {
@@ -281,6 +289,11 @@ void HandleCtesEvent(uint32_t event, void* param) {
 
     case CTES_CLEANUP_EVENT:
     {
+      if (cte_instance) {
+        for (const auto& handle : cte_instance->added_services) {
+          BTA_GATTS_DeleteService(handle);
+        }
+      }
       BTA_GATTS_AppDeregister(cteServiceInfo.server_if);
       cte_instance->remoteDevices.RemoveDevices();
       break;

@@ -187,6 +187,9 @@ uint8_t btm_ble_find_irk_index(void) {
  ******************************************************************************/
 void btm_ble_update_resolving_list(const RawAddress& pseudo_bda, bool add) {
   tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev(pseudo_bda);
+
+  BTM_TRACE_DEBUG("%s: BDA:: %s Add entry %d", __func__,
+      pseudo_bda.ToString().c_str(), add);
   if (p_dev_rec == NULL) return;
 
   if (add) {
@@ -615,13 +618,14 @@ void btm_ble_vendor_enable_irk_feature(bool enable) {
  *
  ******************************************************************************/
 bool btm_ble_exe_disable_resolving_list(void) {
+  BTM_TRACE_DEBUG("%s:", __func__);
   if (!btm_ble_suspend_resolving_list_activity()) return false;
 
   if (!controller_get_interface()->supports_ble_privacy())
     btm_ble_vendor_enable_irk_feature(false);
-  else
+  else {
     btsnd_hcic_ble_set_addr_resolution_enable(false);
-
+  }
   return true;
 }
 
@@ -654,12 +658,14 @@ void btm_ble_exe_enable_resolving_list(void) {
  ******************************************************************************/
 bool btm_ble_disable_resolving_list(uint8_t rl_mask, bool to_resume) {
   uint8_t rl_state = btm_cb.ble_ctr_cb.rl_state;
-
+  
   /* if controller does not support RPA offloading or privacy 1.2, skip */
   if (controller_get_interface()->get_ble_resolving_list_max_size() == 0)
     return false;
 
   btm_cb.ble_ctr_cb.rl_state &= ~rl_mask;
+  BTM_TRACE_DEBUG("%s rl_state %d :: btm_cb.ble_ctr_cb.rl_state %d", __func__,
+                   rl_state, btm_cb.ble_ctr_cb.rl_state);
 
   if (rl_state != BTM_BLE_RL_IDLE &&
       btm_cb.ble_ctr_cb.rl_state == BTM_BLE_RL_IDLE) {
@@ -713,15 +719,17 @@ bool btm_ble_resolving_list_load_dev(tBTM_SEC_DEV_REC* p_dev_rec) {
   if ((p_dev_rec->ble.in_controller_list & BTM_RESOLVING_LIST_BIT) ||
       btm_ble_brcm_find_resolving_pending_entry(p_dev_rec->bd_addr,
                                                 BTM_BLE_META_ADD_IRK_ENTRY)) {
-    BTM_TRACE_ERROR("%s: Device already in Resolving list", __func__);
+    BTM_TRACE_DEBUG("%s: Device already in Resolving list", __func__);
     return true;
   }
 
   if (btm_cb.ble_ctr_cb.resolving_list_avail_size == 0) {
+    BTM_TRACE_DEBUG("%s: resolving_list_avail_size is zero", __func__);
     return false;
   }
 
   if (rl_state && !btm_ble_disable_resolving_list(rl_state, false)) {
+    BTM_TRACE_DEBUG("%s: btm_ble_disable_resolving_list ", __func__);
     return false;
   }
 
@@ -843,12 +851,48 @@ bool btm_ble_resolving_list_empty(void) {
 bool is_on_resolving_list(void* data, void* context) {
   tBTM_SEC_DEV_REC* p_dev = static_cast<tBTM_SEC_DEV_REC*>(data);
   if ((p_dev->ble.in_controller_list & BTM_RESOLVING_LIST_BIT) &&
-      (p_dev->ble.in_controller_list & BTM_WHITE_LIST_BIT))
+      (p_dev->ble.in_controller_list & BTM_WHITE_LIST_BIT)) {
+    BTM_TRACE_DEBUG("%s is_on_resolving_list %d", __func__,
+                     p_dev->ble.in_controller_list);
     return false;
+  }
 
   return true;
 }
 
+bool is_on_resolving_list_scan(void* data, void* context) {
+  tBTM_SEC_DEV_REC* p_dev = static_cast<tBTM_SEC_DEV_REC*>(data);
+  if (p_dev->ble.in_controller_list & BTM_RESOLVING_LIST_BIT) {
+    BTM_TRACE_DEBUG("%s ", __func__);
+    return false;
+  }
+
+  return true;
+}
+
+void btm_ble_enable_resolving_list_for_scan(uint8_t rl_mask) {
+  /* if controller does not support, skip */
+  if (controller_get_interface()->get_ble_resolving_list_max_size() == 0)
+    return;
+
+  if (btm_cb.ble_ctr_cb.wl_state == BTM_BLE_WL_IDLE) {
+    BTM_TRACE_DEBUG("%s resolving list size %d ", __func__,
+                    btm_cb.ble_ctr_cb.resolving_list_avail_size);
+    if (controller_get_interface()->get_ble_resolving_list_max_size() >
+        btm_cb.ble_ctr_cb.resolving_list_avail_size) {
+      btm_ble_enable_resolving_list(rl_mask);
+    } else
+      btm_ble_disable_resolving_list(rl_mask, true);
+    return;
+  }
+
+  list_node_t* n = list_foreach(btm_cb.sec_dev_rec, is_on_resolving_list_scan, NULL);
+  if (n) {
+    btm_ble_enable_resolving_list(rl_mask);
+  } else {
+    btm_ble_disable_resolving_list(rl_mask, true);
+  }
+}
 /*******************************************************************************
  *
  * Function         btm_ble_enable_resolving_list_for_platform
@@ -861,24 +905,27 @@ bool is_on_resolving_list(void* data, void* context) {
  *
  ******************************************************************************/
 void btm_ble_enable_resolving_list_for_platform(uint8_t rl_mask) {
+  
+  BTM_TRACE_DEBUG("%s rl_mask %d", __func__, rl_mask);
   /* if controller does not support, skip */
   if (controller_get_interface()->get_ble_resolving_list_max_size() == 0)
     return;
 
   if (btm_cb.ble_ctr_cb.wl_state == BTM_BLE_WL_IDLE) {
     if (controller_get_interface()->get_ble_resolving_list_max_size() >
-        btm_cb.ble_ctr_cb.resolving_list_avail_size)
+        btm_cb.ble_ctr_cb.resolving_list_avail_size) {
       btm_ble_enable_resolving_list(rl_mask);
-    else
+    } else
       btm_ble_disable_resolving_list(rl_mask, true);
     return;
   }
 
   list_node_t* n = list_foreach(btm_cb.sec_dev_rec, is_on_resolving_list, NULL);
-  if (n)
+  if (n) {
     btm_ble_enable_resolving_list(rl_mask);
-  else
+  } else {
     btm_ble_disable_resolving_list(rl_mask, true);
+  }
 }
 
 /*******************************************************************************

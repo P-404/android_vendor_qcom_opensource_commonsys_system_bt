@@ -225,6 +225,13 @@ static void l2c_csm_closed(tL2C_CCB* p_ccb, uint16_t event, void* p_data) {
           (*coc_connect_cfm)(p_bd_addr, &chmap_info, 0, p_ci->l2cap_result,
               p_ci->status);
         }
+      } else if ((p_ci->status == HCI_ERR_CONTROLLER_BUSY) ||
+                (p_ci->status == HCI_ERR_CONNECTION_EXISTS)) {
+        if ((p_ccb->p_lcb->transport == BT_TRANSPORT_BR_EDR) &&
+           (p_ccb->p_lcb->link_state == LST_CONNECTING))
+          /* Start a timer waiting for connect complete */
+          alarm_set_on_mloop(p_ccb->p_lcb->l2c_lcb_timer, L2CAP_LINK_CONNECT_TIMEOUT_MS,
+                           l2c_lcb_timer_timeout, p_ccb->p_lcb);
       }
       break;
 
