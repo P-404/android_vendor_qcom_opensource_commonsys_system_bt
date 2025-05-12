@@ -357,8 +357,11 @@ BT_HDR* l2c_fcr_clone_buf(BT_HDR* p_buf, uint16_t new_offset,
 
   p_buf2->offset = new_offset;
   p_buf2->len = no_of_bytes;
-  memcpy(((uint8_t*)(p_buf2 + 1)) + p_buf2->offset,
-         ((uint8_t*)(p_buf + 1)) + p_buf->offset, no_of_bytes);
+
+  if (((uint8_t*)(p_buf + 1)) + p_buf->offset + no_of_bytes < ((uint8_t*)(p_buf2 + 1)) + p_buf2->offset || ((uint8_t*)(p_buf + 1)) + p_buf->offset > ((uint8_t*)(p_buf2 + 1)) + p_buf2->offset + no_of_bytes) {
+    memcpy(((uint8_t*)(p_buf2 + 1)) + p_buf2->offset,
+          ((uint8_t*)(p_buf + 1)) + p_buf->offset, no_of_bytes);
+  }
 
   return (p_buf2);
 }

@@ -309,5 +309,7 @@ extern uint8_t btm_acl_get_qcm_phy_state(const RawAddress& bda);
 extern void btm_acl_update_qcm_phy_state(uint8_t* p);
 extern bool btm_acl_qhs_phy_supported(const RawAddress& bda,
                                         tBT_TRANSPORT transport);
+extern bool btm_sec_is_session_key_size_downgrade(uint16_t hci_handle, uint8_t key_size);
+extern void btm_sec_update_session_key_size(uint16_t hci_handle, uint8_t key_size);
 
 #endif

@@ -300,6 +300,20 @@ typedef enum {
    */
   BT_PROPERTY_REMOTE_IS_COORDINATED_SET_MEMBER,
 
+  /**
+   * Description - Whether remote device supports Secure Connections mode
+   * Access mode - GET and SET.
+   * Data Type - uint8_t.
+   */
+  BT_PROPERTY_REMOTE_SECURE_CONNECTIONS_SUPPORTED,
+
+  /**
+   * Description - Maximum observed session key for remote device
+   * Access mode - GET and SET.
+   * Data Type - uint8_t.
+   */
+  BT_PROPERTY_REMOTE_MAX_SESSION_KEY_SIZE,
+
     /**
    * Description - Bluetooth Service 128-bit ADV AUDIO UUIDs
    * Access mode - Only GET.
